@@ -1,0 +1,8 @@
+pytest
+mypy
+black
+flake8
+ipython
+ipdb
+pyyaml
+tox
