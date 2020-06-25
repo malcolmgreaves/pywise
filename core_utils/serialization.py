@@ -1,5 +1,15 @@
 from enum import Enum
-from typing import Any, Iterable, Type, Tuple, Set, Mapping, TypeVar, _GenericAlias
+from typing import (  # type: ignore
+    Any,
+    Iterable,
+    Type,
+    Tuple,
+    Set,
+    Mapping,
+    TypeVar,
+    Callable,
+    Optional,
+)
 from dataclasses import dataclass, is_dataclass, Field
 
 from core_utils.common import type_name, checkable_type
@@ -7,6 +17,7 @@ from core_utils.common import type_name, checkable_type
 __all__ = [
     "serialize",
     "deserialize",
+    "CustomFormat",
     "is_namedtuple",
     "is_typed_namedtuple",
     "MissingRequired",
@@ -21,16 +32,35 @@ NOTE: Cannot use `NamedTuple` as bound because of `mypy` bug.
       See: https://github.com/python/mypy/issues/3915
 """
 
+CustomFormat = Mapping[Type, Callable[[Any], Any]]
+"""Defines a mapping of type to function that will either serialize or deserialize that type.
+See uses in :func:`serialize` and :func:`deserialize`.
+"""
 
-def serialize(value: Any) -> Any:
+
+def serialize(value: Any, custom: Optional[CustomFormat] = None) -> Any:
     """Attempts to convert the `value` into an equivalent `dict` structure.
 
-    NOTE: If the value is not a namedtuple, dict, enum, or iterable, then the value is returned as-is.
+    NOTE: If the value is not a namedtuple, dataclass, mapping, enum, or iterable, then the value is
+          returned as-is.
+
+    The :param:`custom` optional mapping provides callers with the ability to handle deserialization
+    of complex types that are from an external source. E.g. To serialize `numpy` arrays, one may use:
+    ```
+    custom = {numpy.ndarray: lambda a: a.tolist()}
+    ```
+
+    NOTE: If :param:`custom` is present, its serialization functions are given priority.
+    NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
+          type parametrization.
     """
-    if is_namedtuple(value):
+    if custom is not None and type(value) in custom:
+        return custom[type(value)](value)
+
+    elif is_namedtuple(value):
         return {k: serialize(raw_val) for k, raw_val in value._asdict().items()}
 
-    if is_dataclass(value):
+    elif is_dataclass(value):
         return {k: serialize(v) for k, v in value.__dict__.items()}
 
     elif isinstance(value, Mapping):
@@ -50,14 +80,29 @@ def serialize(value: Any) -> Any:
         return value
 
 
-def deserialize(type_value: Type, value: Any) -> Any:
+def deserialize(
+    type_value: Type, value: Any, custom: Optional[CustomFormat] = None,
+) -> Any:
     """Does final conversion of the `dict`-like `value` into an instance of `type_value`.
 
     NOTE: If the input type `type_value` is a sequence, then deserialization is attempted on each
     element. If it is a `dict`, then deserialization is attempted on each key and value. If this
-    specified type is a namedtuple or enum, then it will be appropriately handled.
+    specified type is a namedtuple, dataclass, or enum, then it will be appropriately handled.
     Values without these explicit types are returned as-is.
+
+    The :param:`custom` optional mapping provides callers with the ability to handle deserialization
+    of complex types that are from an external source. E.g. To deserialize `numpy` arrays, one may use:
+    ```
+    custom = {numpy.ndarray: lambda lst: numpy.array(lst)}
+    ```
+    NOTE: If :param:`custom` is present, its deserialization functions are given priority.
+    NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
+          type parametrization.
     """
+
+    if custom is not None and type_value in custom:
+        return custom[type_value](value)
+
     if type_value == Any:
         return value
 

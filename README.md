@@ -1,4 +1,4 @@
-# `core_utils`
+# `pywise`
 
 Contains functions that provide general utility and build upon the Python 3 standard library. It has no external dependencies.
   - `serialization`: serialization & deserialization for `NamedTuple`-deriving & `@dataclass` decorated classes
@@ -12,39 +12,32 @@ Take a look at the end of this document for example use.
 
 
 ## Development Setup
-Create a distinct environment for this code using coda via:
+This project uses [`poetry`](https://python-poetry.org/) for virtualenv and dependency management. We recommend using [`brew`](https://brew.sh/) to install `poetry` system-wide.
+
+To install the project's dependencies, perform:
 ```
-conda env create -y -n pycore -python=3.8
-```
-And activate it via:
-```
-conda activate pycore
-```
-And make the project's code available in the environment:
-```
-pip install -e .
+poetry install
 ```
 
-
-## Testing
-Install test and dev tool dependencies via:
+Every command must be run within the `poetry`-managed environment.
+For instance, to open a Python shell, you would execute:
 ```
-pip install -r requirements-test.txt
+poetry run python
 ```
-Or with `pip install -e .[test]`.
-
-Run all tests via:
-```
-pytest
-```
-
-Additionally, we use `tox` to perform tests across Python 3.8+ as well as 3.7+. To run both tests in parallel, do:
-```
-tox -p
-```
+Alternatively, you may activate the environment by performing `poetry shell` and directly invoke Python programs.
 
 
-## Dev Tools
+#### Testing
+To run tests, execute:
+```
+poetry run pytest -v
+```
+To run tests against all supported environments, use [`tox`](https://tox.readthedocs.io/en/latest/):
+```
+poetry run tox -p
+```
+
+#### Dev Tools
 This project uses `black` for code formatting, `flake8` for linting, and
 `mypy` for type checking. Use the following commands to ensure code quality:
 ```
@@ -55,12 +48,13 @@ black .
 mypy --ignore-missing-imports --follow-imports=silent --show-column-numbers --warn-unreachable .
 
 # lints code
-flake8 --max-line-length=100 --ignore=E501,W293,E303,W291,W503,E203,E731,E231 .
+flake8 --max-line-length=100 --ignore=E501,W293,E303,W291,W503,E203,E731,E231,E721,E722,E741 .
 ```
 
 
-## Examples
+## Documentation via Examples
 
+#### Nested @dataclass and NamedTuple
 Lets say you have an address book that you want to write to and from JSON.
 We'll define our data types for our `AddressBook`:
 
@@ -115,7 +109,7 @@ ab = AddressBook([
           emergency_contact=Emergency("Superman", PhoneNumber(262,1249865,extension=1))
     ),
 ])
-'''
+```
 
 We can convert our `AddressBook` data type into a JSON-formatted string using `serialize`:
 ```python
@@ -138,5 +132,44 @@ print(ab == new_ab)
 #       Any @dataclass decorated type is serializable. 
 ```
 
-NOTE: The `deserialize` function needs the type to deserialize the data into.
+Note that the `deserialize` function needs the type to deserialize the data into. The deserizliation
+type-matching is _structural_: it will work so long as the data type's structure (of field names and
+associated types) is compatible with the supplied data.
+
+
+#### Custom Serialization
+In the event that one desires to use `serialize` and `deserialize` with data types from third-party libraries (e.g. `numpy` arrays) or custom-defined `class`es that are not decorated with `@dataclass` or derive from `NamedTuple`, one may supply a `CustomFormat`.
+
+`CustomFormat` is a mapping that associates precise types with custom serialization functions. When supplied to `serialize`, the values in the mapping accept an instance of the exact type and produces a serializable representation. In the `deserialize` function, they convert such a serialized representation into a bonafide instance of the type.
+
+To illustrate their use, we'll deine `CustomFormat` `dict`s that allow us to serialize `numpy` multi-dimensional arrays:
+```python
+import numpy as np
+from core_utils.serialization import *
+
+
+custom_serialization: CustomFormat = {
+    np.ndarray: lambda arr: arr.tolist()
+}
+
+custom_deserialization: CustomFormat = {
+    np.ndarray: lambda lst: np.array(lst)
+}
+```
+
+Now, we may supply `custom_{serialization,deserialization}` to our functions. We'll use them to perform a "round-trip" serialization of a four-dimensional array of floating point numbers to and from a JSON-formatted `str`:
+```python
+import json
+
+v_original = np.random.random((1,2,3,4))
+s = serialize(v_original, custom=custom_serialization)
+j = json.dumps(s)
+
+d = json.loads(j)
+v_deser = deserialize(np.ndarray, d, custom=custom_deserialization)
+
+print((v_original == v_deser).all())
+```
+
+It's important to note that, when supplying a `CustomFormat` the serialization functions take priority over the default behavior (except for `Any`, as it is _always_ considered a pass-through). Moreover, types must match **exactly** to the keys in the mapping. Thus, if using a generic type, you must supply separate key-value entires for each distinct type parameterization.
 

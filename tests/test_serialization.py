@@ -9,19 +9,6 @@ from pytest import raises, fixture
 import yaml
 
 
-@dataclass(frozen=True)
-class YAML:
-    def dumps(self, obj: Any) -> str:
-        wt = io.StringIO()
-        yaml.safe_dump(obj, wt)
-        return wt.getvalue()
-
-    def loads(self, string_data: str) -> Any:
-        rt = io.StringIO(string_data)
-        rt.seek(0)
-        return yaml.safe_load(rt)
-
-
 from core_utils.serialization import (
     serialize,
     deserialize,
@@ -33,6 +20,19 @@ from core_utils.serialization import (
     _dataclass_from_dict,
     MissingRequired,
 )
+
+
+@dataclass(frozen=True)
+class YAML:
+    def dumps(self, obj: Any) -> str:
+        wt = io.StringIO()
+        yaml.safe_dump(obj, wt)
+        return wt.getvalue()
+
+    def loads(self, string_data: str) -> Any:
+        rt = io.StringIO(string_data)
+        rt.seek(0)
+        return yaml.safe_load(rt)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
