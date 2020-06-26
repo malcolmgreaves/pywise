@@ -1,4 +1,5 @@
 # `pywise`
+[![PyPI version](https://badge.fury.io/py/pywise.svg)](https://badge.fury.io/py/pywise) [![Build Status](https://travis-ci.org/malcolmgreaves/pywise.svg?branch=master)](https://travis-ci.org/malcolmgreaves/pywise) [![Coverage Status](https://coveralls.io/repos/github/malcolmgreaves/pywise/badge.svg?branch=master)](https://coveralls.io/github/malcolmgreaves/pywise?branch=master)
 
 Contains functions that provide general utility and build upon the Python 3 standard library. It has no external dependencies.
   - `serialization`: serialization & deserialization for `NamedTuple`-deriving & `@dataclass` decorated classes
@@ -36,6 +37,9 @@ To run tests against all supported environments, use [`tox`](https://tox.readthe
 ```
 poetry run tox -p
 ```
+NOTE: To run `tox`, you must have all necessary Python interpreters available.
+      We recommend using [`pyenv`](https://github.com/pyenv/pyenv) to manage your Python versions.
+
 
 #### Dev Tools
 This project uses `black` for code formatting, `flake8` for linting, and

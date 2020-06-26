@@ -7,7 +7,8 @@ __pycache__/
 dist/
 *.egg*
 .tox
-
+.coverage
+htmlcov
 
 # Compiled source #
 ###################
