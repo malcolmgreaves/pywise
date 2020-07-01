@@ -1,5 +1,5 @@
 # `pywise`
-[![PyPI version](https://badge.fury.io/py/pywise.svg)](https://badge.fury.io/py/pywise) [![Build Status](https://travis-ci.org/malcolmgreaves/pywise.svg?branch=master)](https://travis-ci.org/malcolmgreaves/pywise) [![Coverage Status](https://coveralls.io/repos/github/malcolmgreaves/pywise/badge.svg?branch=master)](https://coveralls.io/github/malcolmgreaves/pywise?branch=master)
+[![PyPI version](https://badge.fury.io/py/pywise.svg)](https://badge.fury.io/py/pywise) [![Build Status](https://travis-ci.org/malcolmgreaves/pywise.svg?branch=main)](https://travis-ci.org/malcolmgreaves/pywise) [![Coverage Status](https://coveralls.io/repos/github/malcolmgreaves/pywise/badge.svg?branch=main)](https://coveralls.io/github/malcolmgreaves/pywise?branch=main)
 
 Contains functions that provide general utility and build upon the Python 3 standard library. It has no external dependencies.
   - `serialization`: serialization & deserialization for `NamedTuple`-deriving & `@dataclass` decorated classes
