@@ -2,7 +2,7 @@
 name = "pywise"
 version = "0.1.0"
 description = "Robust serialization support for NamedTuple & @dataclass data types."
-authors = ["Malcolm Greaves"]
+authors = ["Malcolm Greaves <greaves.malcolm@gmail.com>"]
 homepage = "https://github.com/malcolmgreaves/pywise"
 license = "Apache-2.0"
 readme = 'README.md'
