@@ -58,16 +58,16 @@ def serialize(value: Any, custom: Optional[CustomFormat] = None) -> Any:
         return custom[type(value)](value)
 
     elif is_namedtuple(value):
-        return {k: serialize(raw_val) for k, raw_val in value._asdict().items()}
+        return {k: serialize(raw_val, custom) for k, raw_val in value._asdict().items()}
 
     elif is_dataclass(value):
-        return {k: serialize(v) for k, v in value.__dict__.items()}
+        return {k: serialize(v, custom) for k, v in value.__dict__.items()}
 
     elif isinstance(value, Mapping):
-        return {serialize(k): serialize(v) for k, v in value.items()}
+        return {serialize(k, custom): serialize(v, custom) for k, v in value.items()}
 
     elif isinstance(value, Iterable) and not isinstance(value, str):
-        return list(map(serialize, value))
+        return list(map(lambda x: serialize(x, custom), value))
 
     elif isinstance(value, Enum):
         # serialize the enum value's name as it's a better identifier than the
@@ -109,10 +109,10 @@ def deserialize(
     checking_type_value: Type = checkable_type(type_value)
 
     if is_namedtuple(checking_type_value):
-        return _namedtuple_from_dict(type_value, value)
+        return _namedtuple_from_dict(type_value, value, custom)
 
     elif is_dataclass(checking_type_value):
-        return _dataclass_from_dict(type_value, value)
+        return _dataclass_from_dict(type_value, value, custom)
 
     # NOTE: Need to have type_value instead of checking_type_value here !
     elif _is_optional(type_value):
@@ -120,7 +120,7 @@ def deserialize(
         if value is None:
             return None
         else:
-            return deserialize(type_value.__args__[0], value)
+            return deserialize(type_value.__args__[0], value, custom)
 
     # NOTE: Need to have type_value instead of checking_type_value here !
     elif _is_union(type_value):
@@ -129,7 +129,7 @@ def deserialize(
             # possible types
             print(possible_type)
             try:
-                return deserialize(possible_type, value)
+                return deserialize(possible_type, value, custom)
             except Exception:
                 pass
         raise FieldDeserializeFail(
@@ -139,20 +139,23 @@ def deserialize(
     elif issubclass(checking_type_value, Mapping):
         k_type, v_type = type_value.__args__  # type: ignore
         return {
-            deserialize(k_type, k): deserialize(v_type, v) for k, v in value.items()
+            deserialize(k_type, k, custom): deserialize(v_type, v, custom)
+            for k, v in value.items()
         }
 
     elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
         tuple_type_args = type_value.__args__
         converted = map(
-            lambda type_val_pair: deserialize(type_val_pair[0], type_val_pair[1]),
+            lambda type_val_pair: deserialize(
+                type_val_pair[0], type_val_pair[1], custom
+            ),
             zip(tuple_type_args, value),
         )
         return tuple(converted)
 
     elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
         (i_type,) = type_value.__args__  # type: ignore
-        converted = map(lambda x: deserialize(i_type, x), value)
+        converted = map(lambda x: deserialize(i_type, x, custom), value)
         if issubclass(checking_type_value, Set):
             return set(converted)
         else:
@@ -220,7 +223,9 @@ def is_typed_namedtuple(x: Any) -> bool:
 
 
 def _namedtuple_from_dict(
-    namedtuple_type: Type[SomeNamedTuple], data: dict
+    namedtuple_type: Type[SomeNamedTuple],
+    data: dict,
+    custom: Optional[CustomFormat] = None,
 ) -> SomeNamedTuple:
     """Initializes an instance of the given namedtuple type from a dict of its names and values.
 
@@ -231,7 +236,10 @@ def _namedtuple_from_dict(
         try:
             field_values = tuple(
                 _values_for_type(
-                    _namedtuple_field_types(namedtuple_type), data, namedtuple_type
+                    _namedtuple_field_types(namedtuple_type),
+                    data,
+                    namedtuple_type,
+                    custom,
                 )
             )
             return namedtuple_type._make(field_values)  # type: ignore
@@ -259,14 +267,16 @@ def _namedtuple_field_types(
     return namedtuple_type._field_types.items()  # type: ignore
 
 
-def _dataclass_from_dict(dataclass_type: Type, data: dict) -> Any:
+def _dataclass_from_dict(
+    dataclass_type: Type, data: dict, custom: Optional[CustomFormat] = None
+) -> Any:
     """Constructs an @dataclass instance using :param:`data`.
     """
     if is_dataclass(dataclass_type):
         try:
             field_and_types = list(_dataclass_field_types(dataclass_type))
             deserialized_fields = _values_for_type(
-                field_and_types, data, dataclass_type
+                field_and_types, data, dataclass_type, custom
             )
             field_values = dict(
                 zip(map(lambda x: x[0], field_and_types), deserialized_fields)
@@ -299,7 +309,10 @@ def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
 
 
 def _values_for_type(
-    field_name_expected_type: Iterable[Tuple[str, Type]], data: dict, type_data: Type,
+    field_name_expected_type: Iterable[Tuple[str, Type]],
+    data: dict,
+    type_data: Type,
+    custom: Optional[CustomFormat] = None,
 ) -> Iterable:
     """Constructs an instance of :param:`type_data` using the data in :param:`data`, with
     field names & expected types of :param:`field_name_expected_type` guiding construction.
@@ -352,7 +365,7 @@ def _values_for_type(
 
         try:
             if value is not None:
-                yield deserialize(type_value=field_type, value=value)  # type: ignore
+                yield deserialize(field_type, value, custom)  # type: ignore
             else:
                 yield None
         except (FieldDeserializeFail, MissingRequired):

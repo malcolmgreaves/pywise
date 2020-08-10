@@ -1,5 +1,6 @@
 import json
-from typing import Tuple
+from dataclasses import dataclass
+from typing import Tuple, NamedTuple, Mapping, Sequence
 
 import numpy as np
 import torch
@@ -50,6 +51,7 @@ def _test_procedue(cs, cd, simple_len, n_rando_times, multi_shape, make):
         arr = make(multi_shape)
         roundtrip(arr)
 
+
 def _roundtrip(a, cs, cd, check):
     s1 = serialize(a, custom=cs)
     d1 = deserialize(type(a), s1, custom=cd)
@@ -59,11 +61,13 @@ def _roundtrip(a, cs, cd, check):
     d2 = deserialize(type(a), s2, custom=cd)
     check(actual=d2, expected=a)
 
+
 def _check_array_like(*, actual, expected):
     assert isinstance(
         actual, type(expected)
     ), f"Expecting {type(expected)} recieved {type(actual)}"
     assert (expected == actual).all()  # type: ignore
+
 
 def test_serialization_numpy_array(
     custom_serialize,
@@ -99,10 +103,49 @@ def test_serialization_torch_tensor(
     )
 
 
-# def test_custom_serialize_map(custom_serialize, custom_deserialize, multi_dim_shape):
-#     m = {"an_id": np.random.random(multi_dim_shape)}
-#
-#     roundtrip = lambda a: _roundtrip(a, custom_serialize, custom_deserialize, _check_array_like)
-#
-#     roundtrip(m)
+def test_custom_serialize_map(custom_serialize, custom_deserialize, multi_dim_shape):
+    class MNT(NamedTuple):
+        field: Mapping[str, np.ndarray]
 
+    @dataclass(frozen=True)
+    class MDC:
+        field: Mapping[str, np.ndarray]
+
+    mnt = MNT(field={"an_id": np.random.random(multi_dim_shape)})
+    mdc = MDC(field={"an_id": np.random.random(multi_dim_shape)})
+
+    def check(*, actual, expected):
+        assert isinstance(actual, type(expected))
+        assert "an_id" in actual.field
+        _check_array_like(
+            actual=actual.field["an_id"], expected=expected.field["an_id"]
+        )
+
+    _roundtrip(mnt, custom_serialize, custom_deserialize, check)
+    _roundtrip(mdc, custom_serialize, custom_deserialize, check)
+
+
+def test_custom_serialize_iterable(
+    custom_serialize, custom_deserialize, multi_dim_shape
+):
+    class MNT(NamedTuple):
+        field: Sequence[np.ndarray]
+
+    @dataclass(frozen=True)
+    class MDC:
+        field: Sequence[np.ndarray]
+
+    mnt = MNT(
+        field=[np.random.random(multi_dim_shape), np.random.random(multi_dim_shape)]
+    )
+    mdc = MDC(
+        field=[np.random.random(multi_dim_shape), np.random.random(multi_dim_shape)]
+    )
+
+    def check(*, actual, expected):
+        assert isinstance(actual, type(expected))
+        for a, e in zip(actual.field, expected.field):
+            _check_array_like(actual=a, expected=e)
+
+    _roundtrip(mnt, custom_serialize, custom_deserialize, check)
+    _roundtrip(mdc, custom_serialize, custom_deserialize, check)
