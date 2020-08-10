@@ -42,20 +42,7 @@ def multi_dim_shape() -> Tuple[int, int, int, int, int]:
 
 
 def _test_procedue(cs, cd, simple_len, n_rando_times, multi_shape, make):
-    def check(*, actual, expected):
-        assert isinstance(
-            actual, type(expected)
-        ), f"Expecting {type(expected)} recieved {type(actual)}"
-        assert (expected == actual).all()  # type: ignore
-
-    def roundtrip(a):
-        s1 = serialize(a, custom=cs)
-        d1 = deserialize(type(a), s1, custom=cd)
-        check(actual=d1, expected=a)
-        j = json.dumps(s1)
-        s2 = json.loads(j)
-        d2 = deserialize(type(a), s2, custom=cd)
-        check(actual=d2, expected=a)
+    roundtrip = lambda a: _roundtrip(a, cs, cd, _check_array_like)
 
     roundtrip(np.zeros(simple_len))
 
@@ -63,6 +50,20 @@ def _test_procedue(cs, cd, simple_len, n_rando_times, multi_shape, make):
         arr = make(multi_shape)
         roundtrip(arr)
 
+def _roundtrip(a, cs, cd, check):
+    s1 = serialize(a, custom=cs)
+    d1 = deserialize(type(a), s1, custom=cd)
+    check(actual=d1, expected=a)
+    j = json.dumps(s1)
+    s2 = json.loads(j)
+    d2 = deserialize(type(a), s2, custom=cd)
+    check(actual=d2, expected=a)
+
+def _check_array_like(*, actual, expected):
+    assert isinstance(
+        actual, type(expected)
+    ), f"Expecting {type(expected)} recieved {type(actual)}"
+    assert (expected == actual).all()  # type: ignore
 
 def test_serialization_numpy_array(
     custom_serialize,
@@ -96,3 +97,12 @@ def test_serialization_torch_tensor(
         multi_dim_shape,
         lambda s: torch.from_numpy(np.random.random(s)),
     )
+
+
+# def test_custom_serialize_map(custom_serialize, custom_deserialize, multi_dim_shape):
+#     m = {"an_id": np.random.random(multi_dim_shape)}
+#
+#     roundtrip = lambda a: _roundtrip(a, custom_serialize, custom_deserialize, _check_array_like)
+#
+#     roundtrip(m)
+
