@@ -127,7 +127,6 @@ def deserialize(
         for possible_type in type_value.__args__:
             # try to deserialize the value using one of its
             # possible types
-            print(possible_type)
             try:
                 return deserialize(possible_type, value, custom)
             except Exception:
