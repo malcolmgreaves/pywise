@@ -58,10 +58,16 @@ def serialize(value: Any, custom: Optional[CustomFormat] = None) -> Any:
         return custom[type(value)](value)
 
     elif is_namedtuple(value):
-        return {k: serialize(raw_val, custom) for k, raw_val in value._asdict().items()}
+        return {
+            k: serialize(raw_val, custom)
+            for k, raw_val in value._asdict().items()
+            if raw_val is not None
+        }
 
     elif is_dataclass(value):
-        return {k: serialize(v, custom) for k, v in value.__dict__.items()}
+        return {
+            k: serialize(v, custom) for k, v in value.__dict__.items() if v is not None
+        }
 
     elif isinstance(value, Mapping):
         return {serialize(k, custom): serialize(v, custom) for k, v in value.items()}
