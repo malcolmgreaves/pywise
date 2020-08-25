@@ -333,7 +333,7 @@ def test_union_deserialization_nt():
     _test_union_deserialization(X1_NT, LS_NT)
 
 
-def test_serialize_none_doesnt_show_nt():
+def test_serialize_none_special_cases_nt():
     class HasNone_NT(NamedTuple):
         fieldname: Optional[str]
 
@@ -342,6 +342,10 @@ def test_serialize_none_doesnt_show_nt():
 
     s = serialize(HasNone_NT(None))
     assert len(s) == 0
+    assert deserialize(HasNone_NT, s) == HasNone_NT(None)
+
+    s = serialize(HasNone_NT(None), no_none_values=False)
+    assert len(s) == 1
     assert deserialize(HasNone_NT, s) == HasNone_NT(None)
 
 
@@ -463,7 +467,7 @@ def test_union_deserialization_dc():
     _test_union_deserialization(X1_DC, LS_DC)
 
 
-def test_serialize_none_doesnt_show_dc():
+def test_serialize_none_special_cases_dc():
     @dataclass
     class HasNone_DC:
         fieldname: Optional[str]
@@ -473,4 +477,8 @@ def test_serialize_none_doesnt_show_dc():
 
     s = serialize(HasNone_DC(None))
     assert len(s) == 0
+    assert deserialize(HasNone_DC, s) == HasNone_DC(None)
+
+    s = serialize(HasNone_DC(None), no_none_values=False)
+    assert len(s) == 1
     assert deserialize(HasNone_DC, s) == HasNone_DC(None)
