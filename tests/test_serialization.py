@@ -482,3 +482,14 @@ def test_serialize_none_special_cases_dc():
     s = serialize(HasNone_DC(None), no_none_values=False)
     assert len(s) == 1
     assert deserialize(HasNone_DC, s) == HasNone_DC(None)
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                            Extra Tests                            #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+def test_serialize_none_special_cases_mapping():
+    m_empty = {"key": None}
+    s = serialize(m_empty, no_none_values=False)
+    assert len(s) == 1
+    assert deserialize(Mapping[str, Optional[int]], s) == m_empty
+    assert deserialize(Mapping[str, Optional[int]], serialize(m_empty)) == {}
