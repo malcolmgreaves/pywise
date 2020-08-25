@@ -38,7 +38,9 @@ See uses in :func:`serialize` and :func:`deserialize`.
 """
 
 
-def serialize(value: Any, custom: Optional[CustomFormat] = None) -> Any:
+def serialize(
+    value: Any, custom: Optional[CustomFormat] = None, no_none_values: bool = True
+) -> Any:
     """Attempts to convert the `value` into an equivalent `dict` structure.
 
     NOTE: If the value is not a namedtuple, dataclass, mapping, enum, or iterable, then the value is
@@ -50,6 +52,11 @@ def serialize(value: Any, custom: Optional[CustomFormat] = None) -> Any:
     custom = {numpy.ndarray: lambda a: a.tolist()}
     ```
 
+    The :param:`no_none_values` flag controls whether or not this function will explicitly serialize
+    fields of dataclasses and namedtuples or key-value mappings where the value is `None`. By default,
+    such `None` values are ignored and their respective key-value entry will be exlcuded from returned
+    serialized result. Otherwise, they are kept in the returned serialized result as `None`s.
+
     NOTE: If :param:`custom` is present, its serialization functions are given priority.
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
@@ -58,13 +65,25 @@ def serialize(value: Any, custom: Optional[CustomFormat] = None) -> Any:
         return custom[type(value)](value)
 
     elif is_namedtuple(value):
-        return {k: serialize(raw_val, custom) for k, raw_val in value._asdict().items()}
+        return {
+            k: serialize(raw_val, custom)
+            for k, raw_val in value._asdict().items()
+            if (no_none_values and raw_val is not None) or (not no_none_values)
+        }
 
     elif is_dataclass(value):
-        return {k: serialize(v, custom) for k, v in value.__dict__.items()}
+        return {
+            k: serialize(v, custom)
+            for k, v in value.__dict__.items()
+            if (no_none_values and v is not None) or (not no_none_values)
+        }
 
     elif isinstance(value, Mapping):
-        return {serialize(k, custom): serialize(v, custom) for k, v in value.items()}
+        return {
+            serialize(k, custom): serialize(v, custom)
+            for k, v in value.items()
+            if (no_none_values and v is not None) or (not no_none_values)
+        }
 
     elif isinstance(value, Iterable) and not isinstance(value, str):
         return list(map(lambda x: serialize(x, custom), value))
