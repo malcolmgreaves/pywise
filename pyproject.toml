@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pywise"
-version = "0.1.2"
+version = "0.2.0"
 description = "Robust serialization support for NamedTuple & @dataclass data types."
 authors = ["Malcolm Greaves <greaves.malcolm@gmail.com>"]
 homepage = "https://github.com/malcolmgreaves/pywise"
