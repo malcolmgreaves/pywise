@@ -333,6 +333,18 @@ def test_union_deserialization_nt():
     _test_union_deserialization(X1_NT, LS_NT)
 
 
+def test_serialize_none_doesnt_show_nt():
+    class HasNone_NT(NamedTuple):
+        fieldname: Optional[str]
+
+    x = HasNone_NT("world")
+    assert deserialize(HasNone_NT, serialize(x)) == x
+
+    s = serialize(HasNone_NT(None))
+    assert len(s) == 0
+    assert deserialize(HasNone_NT, s) == HasNone_NT(None)
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                            Dataclass Tests                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -449,3 +461,16 @@ def test_union_deserialization_dc():
         values: Union[LS_DC, int]
 
     _test_union_deserialization(X1_DC, LS_DC)
+
+
+def test_serialize_none_doesnt_show_dc():
+    @dataclass
+    class HasNone_DC:
+        fieldname: Optional[str]
+
+    x = HasNone_DC("world")
+    assert deserialize(HasNone_DC, serialize(x)) == x
+
+    s = serialize(HasNone_DC(None))
+    assert len(s) == 0
+    assert deserialize(HasNone_DC, s) == HasNone_DC(None)
