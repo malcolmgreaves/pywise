@@ -13,7 +13,8 @@ Take a look at the end of this document for example use.
 
 
 ## Development Setup
-This project uses [`poetry`](https://python-poetry.org/) for virtualenv and dependency management. We recommend using [`brew`](https://brew.sh/) to install `poetry` system-wide.
+This project uses [`poetry`](https://python-poetry.org/) for virtualenv and dependency management. 
+We recommend using [`brew`](https://brew.sh/) or [`pipx`](https://github.com/pipxproject/pipx) to install `poetry` system-wide.
 
 To install the project's dependencies, perform:
 ```
