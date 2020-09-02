@@ -1,3 +1,6 @@
+from core_utils.iteration import yield_all
+
+
 def test_yield_all():
   def f():
      yield 1
