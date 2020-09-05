@@ -122,10 +122,14 @@ def deserialize(
     if custom is not None and type_value in custom:
         return custom[type_value](value)
 
+    print("TODO - if type name starts with '~' then pass-thru")
     if type_value == Any:
         return value
 
     checking_type_value: Type = checkable_type(type_value)
+
+    if hasattr(type_value, "__origin__"):
+        return deserialize(type_value.__origin__, value)
 
     if is_namedtuple(checking_type_value):
         return _namedtuple_from_dict(type_value, value, custom)
