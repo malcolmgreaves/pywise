@@ -127,10 +127,64 @@ def deserialize(
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
     """
-    return _deserialize(type_value, value, custom)
+
+    if hasattr(type_value, "__origin__") and is_dataclass(type_value.__origin__):
+        generic_to_concrete = {
+            str(g): c for g, c in _align_generic_concrete_flatten(type_value)
+        }
+    else:
+        generic_to_concrete = dict()
+
+    return _deserialize(
+        type_value, value, custom=custom, generic_to_concrete=generic_to_concrete
+    )
 
 
-def _deserialize(type_value: Type, value: Any, custom: Optional[CustomFormat],) -> Any:
+def _align_generic_concrete_flatten(
+    data_type_with_generics: Type,
+) -> Iterator[Tuple[Type, Union[Type, Iterator[Any]]]]:
+    for generic_type, concrete_type in _align_generic_concrete(data_type_with_generics):
+        yield generic_type, concrete_type
+        if hasattr(concrete_type, "__origin__"):
+            for g, c in _align_generic_concrete_flatten(concrete_type):
+                yield g, c
+
+
+def _align_generic_concrete(
+    data_type_with_generics: Type,
+) -> Iterator[Tuple[Type, Type]]:
+    """Accepts a datacclass type that has filled-in generics. Returns an iterator that yields
+    pairs of (generic type variable name, instantiated type).
+    NOTE: If the supplied type derrives from a Sequence or Mapping, then the generics will be
+          handled appropriately. This is the only exception to non-@dataclass deriving types.
+    """
+    try:
+        origin = data_type_with_generics.__origin__
+        if issubclass(origin, Sequence):
+            generics = [TypeVar("T")]
+            values = data_type_with_generics.__args__
+        elif issubclass(origin, Mapping):
+            generics = [TypeVar("KT"), TypeVar("VT_co")]
+            values = data_type_with_generics.__args__
+        else:
+            # should be a dataclass
+            generics = origin.__parameters__  # type: ignore
+            values = data_type_with_generics.__args__  # type: ignore
+        for g, v in zip(generics, values):
+            yield g, v
+    except AttributeError as e:
+        raise ValueError(
+            f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
+            e,
+        )
+
+
+def _deserialize(
+    type_value: Type,
+    value: Any,
+    custom: Optional[CustomFormat],
+    generic_to_concrete: Mapping[str, Type],
+) -> Any:
     """Does the work of :func:`deserialize`.
     """
     if custom is not None and type_value in custom:
@@ -149,7 +203,7 @@ def _deserialize(type_value: Type, value: Any, custom: Optional[CustomFormat],) 
         return _namedtuple_from_dict(type_value, value, custom)
 
     elif is_dataclass(checking_type_value):
-        return _dataclass_from_dict(type_value, value, custom)
+        return _dataclass_from_dict(type_value, value, custom, generic_to_concrete)
 
     # NOTE: Need to have type_value instead of checking_type_value here !
     elif _is_optional(type_value):
@@ -157,7 +211,9 @@ def _deserialize(type_value: Type, value: Any, custom: Optional[CustomFormat],) 
         if value is None:
             return None
         else:
-            return _deserialize(type_value.__args__[0], value, custom)
+            return _deserialize(
+                type_value.__args__[0], value, custom, generic_to_concrete
+            )
 
     # NOTE: Need to have type_value instead of checking_type_value here !
     elif _is_union(type_value):
@@ -165,7 +221,7 @@ def _deserialize(type_value: Type, value: Any, custom: Optional[CustomFormat],) 
             # try to deserialize the value using one of its
             # possible types
             try:
-                return _deserialize(possible_type, value, custom)
+                return _deserialize(possible_type, value, custom, generic_to_concrete)
             except Exception:
                 pass
         raise FieldDeserializeFail(
@@ -175,7 +231,9 @@ def _deserialize(type_value: Type, value: Any, custom: Optional[CustomFormat],) 
     elif issubclass(checking_type_value, Mapping):
         k_type, v_type = type_value.__args__  # type: ignore
         return {
-            _deserialize(k_type, k, custom): _deserialize(v_type, v, custom)
+            _deserialize(k_type, k, custom, generic_to_concrete): _deserialize(
+                v_type, v, custom, generic_to_concrete
+            )
             for k, v in value.items()
         }
 
@@ -183,7 +241,7 @@ def _deserialize(type_value: Type, value: Any, custom: Optional[CustomFormat],) 
         tuple_type_args = type_value.__args__
         converted = map(
             lambda type_val_pair: _deserialize(
-                type_val_pair[0], type_val_pair[1], custom
+                type_val_pair[0], type_val_pair[1], custom, generic_to_concrete
             ),
             zip(tuple_type_args, value),
         )
@@ -191,7 +249,9 @@ def _deserialize(type_value: Type, value: Any, custom: Optional[CustomFormat],) 
 
     elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
         (i_type,) = type_value.__args__  # type: ignore
-        converted = map(lambda x: _deserialize(i_type, x, custom), value)
+        converted = map(
+            lambda x: _deserialize(i_type, x, custom, generic_to_concrete), value
+        )
         if issubclass(checking_type_value, Set):
             return set(converted)
         else:
@@ -304,7 +364,10 @@ def _namedtuple_field_types(
 
 
 def _dataclass_from_dict(
-    dataclass_type: Type, data: dict, custom: Optional[CustomFormat] = None
+    dataclass_type: Type,
+    data: dict,
+    custom: Optional[CustomFormat],
+    generic_to_concrete: Mapping[str, Type],
 ) -> Any:
     """Constructs an @dataclass instance using :param:`data`.
     """
@@ -313,9 +376,11 @@ def _dataclass_from_dict(
     )
     if is_dataclass(dataclass_type) or is_generic_dataclass:
         try:
-            field_and_types = list(_dataclass_field_types(dataclass_type))
+            field_and_types = list(
+                _dataclass_field_types(dataclass_type, generic_to_concrete)
+            )
             deserialized_fields = _values_for_type(
-                field_and_types, data, dataclass_type, custom
+                field_and_types, data, dataclass_type, custom, generic_to_concrete
             )
             deserialized_fields = list(deserialized_fields)
             field_values = dict(
@@ -359,7 +424,8 @@ def _values_for_type(
     field_name_expected_type: Iterable[Tuple[str, Type]],
     data: dict,
     type_data: Type,
-    custom: Optional[CustomFormat] = None,
+    custom: Optional[CustomFormat],
+    generic_to_concrete: Mapping[str, Any],
 ) -> Iterable:
     """Constructs an instance of :param:`type_data` using the data in :param:`data`, with
     field names & expected types of :param:`field_name_expected_type` guiding construction.
@@ -415,7 +481,7 @@ def _values_for_type(
 
         try:
             if value is not None:
-                yield _deserialize(field_type, value, custom)  # type: ignore
+                yield _deserialize(field_type, value, custom, generic_to_concrete)  # type: ignore
             else:
                 yield None
         except (FieldDeserializeFail, MissingRequired):
