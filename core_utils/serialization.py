@@ -301,11 +301,6 @@ def _dataclass_from_dict(
         dataclass_type.__origin__
     )
     if is_dataclass(dataclass_type) or is_generic_dataclass:
-
-        import ipdb
-
-        ipdb.set_trace()
-
         try:
             field_and_types = list(_dataclass_field_types(dataclass_type))
             deserialized_fields = _values_for_type(
@@ -335,16 +330,28 @@ def _dataclass_from_dict(
 def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
-
+    print(dataclass_type)
     if hasattr(dataclass_type, "__origin__"):
-
-        list(_align_generic_concrete(dataclass_type))
-        field2type = {}
+        generic_to_concrete: Mapping[str, Type] = {
+            str(g): c for g, c in _align_generic_concrete(dataclass_type)
+        }
+        dataclass_fields = dataclass_type.__origin__.__dataclass_fields__  # type: ignore
+        print(
+            f"generic_to_concrete: {generic_to_concrete}\b(original: {list(_align_generic_concrete(dataclass_type))})"
+        )
+    else:
+        generic_to_concrete = dict()
+        dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
     def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
-        return data_field.name, data_field.type
+        typ = generic_to_concrete.get(str(data_field.type), data_field.type)
+        print(f"\t{data_field.name}, {typ}")
+        return data_field.name, typ
 
-    return list(map(as_name_and_type, dataclass_type.__dataclass_fields__.values()))
+    try:
+        return list(map(as_name_and_type, dataclass_fields.values()))
+    finally:
+        print("----------------------------")
 
 
 def _values_for_type(
@@ -404,21 +411,12 @@ def _values_for_type(
 
         try:
             if value is not None:
-
-                import ipdb
-
-                ipdb.set_trace()
-
                 yield deserialize(field_type, value, custom)  # type: ignore
             else:
                 yield None
         except (FieldDeserializeFail, MissingRequired):
             raise
         except Exception as e:
-            import ipdb
-
-            ipdb.set_trace()
-
             raise FieldDeserializeFail(
                 field_name=field_name, expected_type=field_type, actual_value=value
             ) from e
