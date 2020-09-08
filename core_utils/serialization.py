@@ -9,6 +9,7 @@ from typing import (  # type: ignore
     TypeVar,
     Callable,
     Optional,
+    Iterator,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
@@ -61,6 +62,11 @@ def serialize(
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
     """
+
+    import ipdb
+
+    ipdb.set_trace()
+
     if custom is not None and type(value) in custom:
         return custom[type(value)](value)
 
@@ -119,11 +125,18 @@ def deserialize(
           type parametrization.
     """
 
+    import ipdb
+
+    ipdb.set_trace()
+
     if custom is not None and type_value in custom:
         return custom[type_value](value)
 
-    print("TODO - if type name starts with '~' then pass-thru")
     if type_value == Any:
+        return value
+
+    if str(type_value).startswith("~"):
+        # is a generic type alias: cannot do much with this, so return as-is
         return value
 
     checking_type_value: Type = checkable_type(type_value)
@@ -396,6 +409,23 @@ def _values_for_type(
             raise FieldDeserializeFail(
                 field_name=field_name, expected_type=field_type, actual_value=value
             ) from e
+
+
+def _align_generic_concrete(
+    data_type_with_generics: Type,
+) -> Iterator[Tuple[Type, Type]]:
+    """Accepts a datacclass type that has filled-in generics. Returns an iterator that yields
+    pairs of (generic type variable name, instantiated type).
+    """
+    try:
+        generics = data_type_with_generics.__origin__.__parameters__  # type: ignore
+        values = data_type_with_generics.__args__  # type: ignore
+        return zip(generics, values)
+    except AttributeError as e:
+        raise ValueError(
+            f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
+            e,
+        )
 
 
 @dataclass(frozen=True)
