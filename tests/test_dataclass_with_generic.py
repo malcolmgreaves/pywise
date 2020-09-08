@@ -106,6 +106,6 @@ def test_serialize_generic_complex_nested():
                 int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
             ],
         ],
-        x,
+        serialize(x),
     )
     assert d == x

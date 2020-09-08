@@ -327,7 +327,9 @@ def _dataclass_from_dict(
         )
 
 
-def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
+def _dataclass_field_types(
+    dataclass_type: Type, generic_to_concrete: Mapping[str, Type]
+) -> Iterable[Tuple[str, Type]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
     if hasattr(dataclass_type, "__origin__"):
@@ -336,7 +338,8 @@ def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
     def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
-        return data_field.name, data_field.type
+        typ = generic_to_concrete.get(str(data_field.type), data_field.type)
+        return data_field.name, typ
 
     return list(map(as_name_and_type, dataclass_fields.values()))
 
@@ -390,6 +393,9 @@ def _values_for_type(
         elif _is_optional(field_type):  # type: ignore
             value = None
         else:
+            import ipdb
+
+            ipdb.set_trace()
             raise MissingRequired(
                 field_name=field_name,
                 field_expected_type=field_type,
