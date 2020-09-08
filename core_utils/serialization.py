@@ -40,10 +40,7 @@ CustomFormat = Mapping[Type, Callable[[Any], Any]]
 See uses in :func:`serialize` and :func:`deserialize`.
 """
 
-
-def serialize(
-    value: Any, custom: Optional[CustomFormat] = None, no_none_values: bool = True
-) -> Any:
+def serialize(value: Any, custom: Optional[CustomFormat] = None, no_none_values:bool = True) -> Any:
     """Attempts to convert the `value` into an equivalent `dict` structure.
 
     NOTE: If the value is not a namedtuple, dataclass, mapping, enum, or iterable, then the value is
@@ -64,33 +61,40 @@ def serialize(
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
     """
+    return _serialize(value, custom, no_none_values)
 
+
+def _serialize(
+    value: Any, custom: Optional[CustomFormat], no_none_values: bool
+) -> Any:
+    """Does the work of :func:`serialize`.
+    """
     if custom is not None and type(value) in custom:
         return custom[type(value)](value)
 
     elif is_namedtuple(value):
         return {
-            k: serialize(raw_val, custom)
+            k: _serialize(raw_val, custom)
             for k, raw_val in value._asdict().items()
             if (no_none_values and raw_val is not None) or (not no_none_values)
         }
 
     elif is_dataclass(value):
         return {
-            k: serialize(v, custom)
+            k: _serialize(v, custom)
             for k, v in value.__dict__.items()
             if (no_none_values and v is not None) or (not no_none_values)
         }
 
     elif isinstance(value, Mapping):
         return {
-            serialize(k, custom): serialize(v, custom)
+            _serialize(k, custom): _serialize(v, custom)
             for k, v in value.items()
             if (no_none_values and v is not None) or (not no_none_values)
         }
 
     elif isinstance(value, Iterable) and not isinstance(value, str):
-        return list(map(lambda x: serialize(x, custom), value))
+        return list(map(lambda x: _serialize(x, custom), value))
 
     elif isinstance(value, Enum):
         # serialize the enum value's name as it's a better identifier than the
