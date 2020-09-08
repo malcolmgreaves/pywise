@@ -417,6 +417,9 @@ def _align_generic_concrete(
 ) -> Iterator[Tuple[Type, Type]]:
     """Accepts a datacclass type that has filled-in generics. Returns an iterator that yields
     pairs of (generic type variable name, instantiated type).
+
+    NOTE: If the supplied type derrives from a Sequence or Mapping, then the generics will be
+          handled appropriately. This is the only exception to non-@dataclass deriving types.
     """
     try:
         origin = data_type_with_generics.__origin__

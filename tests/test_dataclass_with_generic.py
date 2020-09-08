@@ -94,18 +94,39 @@ def test_align_generic_concrete_complex_nested():
             ]
         )
     )
-    assert len(x) == 11
+    assert len(x) == 2
     _align(x[0], "A", str)
-    _align(x[1], "B", NestedGeneric)
-    _align(x[2], "KT", str)
-    _align(x[3], "VT_co", Any)
-    _align(x[4], "KT", str)
-    _align(x[5], "VT_co", Any)
-    _align(x[6], "KT", str)
-    _align(x[7], "VT_co", Any)
-    _align(x[8], "KT", str)
-    _align(x[9], "VT_co", Any)
-    _align(x[10], "KT", str)
+    _align(
+        x[1],
+        "B",
+        NestedGeneric[
+            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+        ],
+    )
+
+    x = list(_align_generic_concrete(x[1][1]))
+    assert len(x) == 2
+    _align(x[0], "A", int)
+    _align(x[1], "B", NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]])
+
+    x = list(_align_generic_concrete(x[1][1]))
+    assert len(x) == 2
+    _align(x[0], "A", float)
+    _align(x[1], "B", NestedGeneric[List[int], Mapping[str, int]])
+
+    x = list(_align_generic_concrete(x[1][1]))
+    assert len(x) == 2
+    _align(x[0], "A", List[int])
+    _align(x[1], "B", Mapping[str, int])
+
+    x_list = list(_align_generic_concrete(x[0][1]))
+    assert len(x_list) == 1
+    _align(x_list[0], "T", int)
+
+    x_map = list(_align_generic_concrete(x[1][1]))
+    assert len(x_map) == 2
+    _align(x_map[0], "KT", str)
+    _align(x_map[1], "VT_co", int)
 
 
 def test_serialize_non_generic(
