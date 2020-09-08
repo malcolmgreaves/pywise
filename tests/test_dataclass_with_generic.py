@@ -3,7 +3,12 @@ from typing import Generic, TypeVar, Tuple, Any, Type, List, Mapping
 
 from pytest import fixture
 
-from core_utils.serialization import serialize, deserialize, _align_generic_concrete
+from core_utils.serialization import (
+    serialize,
+    deserialize,
+    _align_generic_concrete,
+    _align_generic_concrete_flatten,
+)
 
 T = TypeVar("T")
 A = TypeVar("A")
@@ -127,6 +132,38 @@ def test_align_generic_concrete_complex_nested():
     assert len(x_map) == 2
     _align(x_map[0], "KT", str)
     _align(x_map[1], "VT_co", int)
+
+
+def test_align_generic_concrete_flatten():
+    x = list(
+        _align_generic_concrete_flatten(
+            NestedGeneric[
+                str,
+                NestedGeneric[
+                    int,
+                    NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+                ],
+            ]
+        )
+    )
+    assert len(x) == 11
+    _align(x[0], "A", str)
+    _align(
+        x[1],
+        "B",
+        NestedGeneric[
+            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
+        ],
+    )
+    _align(x[2], "A", int)
+    _align(x[3], "B", NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]])
+    _align(x[4], "A", float)
+    _align(x[5], "B", NestedGeneric[List[int], Mapping[str, int]])
+    _align(x[6], "A", List[int])
+    _align(x[7], "T", int)
+    _align(x[8], "B", Mapping[str, int])
+    _align(x[9], "KT", str)
+    _align(x[10], "VT_co", int)
 
 
 def test_serialize_non_generic(

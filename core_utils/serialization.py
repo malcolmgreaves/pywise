@@ -11,6 +11,7 @@ from typing import (  # type: ignore
     Optional,
     Iterator,
     Sequence,
+    Union,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
@@ -63,10 +64,6 @@ def serialize(
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
     """
-
-    import ipdb
-
-    ipdb.set_trace()
 
     if custom is not None and type(value) in custom:
         return custom[type(value)](value)
@@ -125,11 +122,6 @@ def deserialize(
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
     """
-
-    import ipdb
-
-    ipdb.set_trace()
-
     if custom is not None and type_value in custom:
         return custom[type_value](value)
 
@@ -141,9 +133,6 @@ def deserialize(
         return value
 
     checking_type_value: Type = checkable_type(type_value)
-
-    if hasattr(type_value, "__origin__"):
-        return deserialize(type_value.__origin__, value)
 
     if is_namedtuple(checking_type_value):
         return _namedtuple_from_dict(type_value, value, custom)
@@ -308,12 +297,21 @@ def _dataclass_from_dict(
 ) -> Any:
     """Constructs an @dataclass instance using :param:`data`.
     """
-    if is_dataclass(dataclass_type):
+    is_generic_dataclass = hasattr(dataclass_type, "__origin__") and is_dataclass(
+        dataclass_type.__origin__
+    )
+    if is_dataclass(dataclass_type) or is_generic_dataclass:
+
+        import ipdb
+
+        ipdb.set_trace()
+
         try:
             field_and_types = list(_dataclass_field_types(dataclass_type))
             deserialized_fields = _values_for_type(
                 field_and_types, data, dataclass_type, custom
             )
+            deserialized_fields = list(deserialized_fields)
             field_values = dict(
                 zip(map(lambda x: x[0], field_and_types), deserialized_fields)
             )
@@ -337,6 +335,11 @@ def _dataclass_from_dict(
 def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
+
+    if hasattr(dataclass_type, "__origin__"):
+
+        list(_align_generic_concrete(dataclass_type))
+        field2type = {}
 
     def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
         return data_field.name, data_field.type
@@ -401,15 +404,34 @@ def _values_for_type(
 
         try:
             if value is not None:
+
+                import ipdb
+
+                ipdb.set_trace()
+
                 yield deserialize(field_type, value, custom)  # type: ignore
             else:
                 yield None
         except (FieldDeserializeFail, MissingRequired):
             raise
         except Exception as e:
+            import ipdb
+
+            ipdb.set_trace()
+
             raise FieldDeserializeFail(
                 field_name=field_name, expected_type=field_type, actual_value=value
             ) from e
+
+
+def _align_generic_concrete_flatten(
+    data_type_with_generics: Type,
+) -> Iterator[Tuple[Type, Union[Type, Iterator[Any]]]]:
+    for generic_type, concrete_type in _align_generic_concrete(data_type_with_generics):
+        yield generic_type, concrete_type
+        if hasattr(concrete_type, "__origin__"):
+            for g, c in _align_generic_concrete_flatten(concrete_type):
+                yield g, c
 
 
 def _align_generic_concrete(
@@ -433,7 +455,8 @@ def _align_generic_concrete(
             # should be a dataclass
             generics = origin.__parameters__  # type: ignore
             values = data_type_with_generics.__args__  # type: ignore
-        return zip(generics, values)
+        for g, v in zip(generics, values):
+            yield g, v
     except AttributeError as e:
         raise ValueError(
             f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
