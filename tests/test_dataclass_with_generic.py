@@ -75,3 +75,37 @@ def test_serialize_generic(
     _rt("SimpleGeneric[str]", simple_str)
     _rt("NestedGeneric[int,int]", nested_int_int)
     _rt("NestedGeneric[int, str]", nested_int_str)
+
+
+def test_serialize_generic_complex_nested():
+    x = NestedGeneric[
+        str,
+        NestedGeneric[
+            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+        ],
+    ](
+        "i am a str",
+        NestedGeneric[
+            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+        ](
+            999,
+            NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]](
+                -1.0,
+                NestedGeneric[List[int], Mapping[str, int]](
+                    [0, 2, 4, 6, 8, 10],
+                    {"hello": 0, "how": 78892, "are": -12561, "you?": 463},
+                ),
+            ),
+        ),
+    )
+
+    d = deserialize(
+        NestedGeneric[
+            str,
+            NestedGeneric[
+                int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+            ],
+        ],
+        x,
+    )
+    assert d == x
