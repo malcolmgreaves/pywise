@@ -56,7 +56,7 @@ def _rt(t: str, x: Any) -> None:
 
 
 def _align(x: Tuple[Type, Type], str_name: str, typ: Type) -> None:
-    assert x[0] == f"~{str_name}"
+    assert str(x[0]) == f"~{str_name}"
     assert x[1] == typ
 
 

@@ -10,6 +10,7 @@ from typing import (  # type: ignore
     Callable,
     Optional,
     Iterator,
+    Sequence,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
@@ -418,8 +419,17 @@ def _align_generic_concrete(
     pairs of (generic type variable name, instantiated type).
     """
     try:
-        generics = data_type_with_generics.__origin__.__parameters__  # type: ignore
-        values = data_type_with_generics.__args__  # type: ignore
+        origin = data_type_with_generics.__origin__
+        if issubclass(origin, Sequence):
+            generics = [TypeVar("T")]
+            values = data_type_with_generics.__args__
+        elif issubclass(origin, Mapping):
+            generics = [TypeVar("KT"), TypeVar("VT_co")]
+            values = data_type_with_generics.__args__
+        else:
+            # should be a dataclass
+            generics = origin.__parameters__  # type: ignore
+            values = data_type_with_generics.__args__  # type: ignore
         return zip(generics, values)
     except AttributeError as e:
         raise ValueError(
