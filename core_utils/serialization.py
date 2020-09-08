@@ -330,28 +330,15 @@ def _dataclass_from_dict(
 def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
-    print(dataclass_type)
     if hasattr(dataclass_type, "__origin__"):
-        generic_to_concrete: Mapping[str, Type] = {
-            str(g): c for g, c in _align_generic_concrete(dataclass_type)
-        }
         dataclass_fields = dataclass_type.__origin__.__dataclass_fields__  # type: ignore
-        print(
-            f"generic_to_concrete: {generic_to_concrete}\b(original: {list(_align_generic_concrete(dataclass_type))})"
-        )
     else:
-        generic_to_concrete = dict()
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
     def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
-        typ = generic_to_concrete.get(str(data_field.type), data_field.type)
-        print(f"\t{data_field.name}, {typ}")
-        return data_field.name, typ
+        return data_field.name, data_field.type
 
-    try:
-        return list(map(as_name_and_type, dataclass_fields.values()))
-    finally:
-        print("----------------------------")
+    return list(map(as_name_and_type, dataclass_fields.values()))
 
 
 def _values_for_type(
@@ -420,46 +407,6 @@ def _values_for_type(
             raise FieldDeserializeFail(
                 field_name=field_name, expected_type=field_type, actual_value=value
             ) from e
-
-
-def _align_generic_concrete_flatten(
-    data_type_with_generics: Type,
-) -> Iterator[Tuple[Type, Union[Type, Iterator[Any]]]]:
-    for generic_type, concrete_type in _align_generic_concrete(data_type_with_generics):
-        yield generic_type, concrete_type
-        if hasattr(concrete_type, "__origin__"):
-            for g, c in _align_generic_concrete_flatten(concrete_type):
-                yield g, c
-
-
-def _align_generic_concrete(
-    data_type_with_generics: Type,
-) -> Iterator[Tuple[Type, Type]]:
-    """Accepts a datacclass type that has filled-in generics. Returns an iterator that yields
-    pairs of (generic type variable name, instantiated type).
-
-    NOTE: If the supplied type derrives from a Sequence or Mapping, then the generics will be
-          handled appropriately. This is the only exception to non-@dataclass deriving types.
-    """
-    try:
-        origin = data_type_with_generics.__origin__
-        if issubclass(origin, Sequence):
-            generics = [TypeVar("T")]
-            values = data_type_with_generics.__args__
-        elif issubclass(origin, Mapping):
-            generics = [TypeVar("KT"), TypeVar("VT_co")]
-            values = data_type_with_generics.__args__
-        else:
-            # should be a dataclass
-            generics = origin.__parameters__  # type: ignore
-            values = data_type_with_generics.__args__  # type: ignore
-        for g, v in zip(generics, values):
-            yield g, v
-    except AttributeError as e:
-        raise ValueError(
-            f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
-            e,
-        )
 
 
 @dataclass(frozen=True)
