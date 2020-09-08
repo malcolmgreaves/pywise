@@ -40,7 +40,10 @@ CustomFormat = Mapping[Type, Callable[[Any], Any]]
 See uses in :func:`serialize` and :func:`deserialize`.
 """
 
-def serialize(value: Any, custom: Optional[CustomFormat] = None, no_none_values:bool = True) -> Any:
+
+def serialize(
+    value: Any, custom: Optional[CustomFormat] = None, no_none_values: bool = True
+) -> Any:
     """Attempts to convert the `value` into an equivalent `dict` structure.
 
     NOTE: If the value is not a namedtuple, dataclass, mapping, enum, or iterable, then the value is
@@ -64,9 +67,7 @@ def serialize(value: Any, custom: Optional[CustomFormat] = None, no_none_values:
     return _serialize(value, custom, no_none_values)
 
 
-def _serialize(
-    value: Any, custom: Optional[CustomFormat], no_none_values: bool
-) -> Any:
+def _serialize(value: Any, custom: Optional[CustomFormat], no_none_values: bool) -> Any:
     """Does the work of :func:`serialize`.
     """
     if custom is not None and type(value) in custom:
@@ -74,27 +75,27 @@ def _serialize(
 
     elif is_namedtuple(value):
         return {
-            k: _serialize(raw_val, custom)
+            k: _serialize(raw_val, custom, no_none_values)
             for k, raw_val in value._asdict().items()
             if (no_none_values and raw_val is not None) or (not no_none_values)
         }
 
     elif is_dataclass(value):
         return {
-            k: _serialize(v, custom)
+            k: _serialize(v, custom, no_none_values)
             for k, v in value.__dict__.items()
             if (no_none_values and v is not None) or (not no_none_values)
         }
 
     elif isinstance(value, Mapping):
         return {
-            _serialize(k, custom): _serialize(v, custom)
+            _serialize(k, custom, no_none_values): _serialize(v, custom, no_none_values)
             for k, v in value.items()
             if (no_none_values and v is not None) or (not no_none_values)
         }
 
     elif isinstance(value, Iterable) and not isinstance(value, str):
-        return list(map(lambda x: _serialize(x, custom), value))
+        return list(map(lambda x: _serialize(x, custom, no_none_values), value))
 
     elif isinstance(value, Enum):
         # serialize the enum value's name as it's a better identifier than the
@@ -126,6 +127,12 @@ def deserialize(
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
     """
+    return _deserialize(type_value, value, custom)
+
+
+def _deserialize(type_value: Type, value: Any, custom: Optional[CustomFormat],) -> Any:
+    """Does the work of :func:`deserialize`.
+    """
     if custom is not None and type_value in custom:
         return custom[type_value](value)
 
@@ -150,7 +157,7 @@ def deserialize(
         if value is None:
             return None
         else:
-            return deserialize(type_value.__args__[0], value, custom)
+            return _deserialize(type_value.__args__[0], value, custom)
 
     # NOTE: Need to have type_value instead of checking_type_value here !
     elif _is_union(type_value):
@@ -158,7 +165,7 @@ def deserialize(
             # try to deserialize the value using one of its
             # possible types
             try:
-                return deserialize(possible_type, value, custom)
+                return _deserialize(possible_type, value, custom)
             except Exception:
                 pass
         raise FieldDeserializeFail(
@@ -168,14 +175,14 @@ def deserialize(
     elif issubclass(checking_type_value, Mapping):
         k_type, v_type = type_value.__args__  # type: ignore
         return {
-            deserialize(k_type, k, custom): deserialize(v_type, v, custom)
+            _deserialize(k_type, k, custom): _deserialize(v_type, v, custom)
             for k, v in value.items()
         }
 
     elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
         tuple_type_args = type_value.__args__
         converted = map(
-            lambda type_val_pair: deserialize(
+            lambda type_val_pair: _deserialize(
                 type_val_pair[0], type_val_pair[1], custom
             ),
             zip(tuple_type_args, value),
@@ -184,7 +191,7 @@ def deserialize(
 
     elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
         (i_type,) = type_value.__args__  # type: ignore
-        converted = map(lambda x: deserialize(i_type, x, custom), value)
+        converted = map(lambda x: _deserialize(i_type, x, custom), value)
         if issubclass(checking_type_value, Set):
             return set(converted)
         else:
@@ -408,7 +415,7 @@ def _values_for_type(
 
         try:
             if value is not None:
-                yield deserialize(field_type, value, custom)  # type: ignore
+                yield _deserialize(field_type, value, custom)  # type: ignore
             else:
                 yield None
         except (FieldDeserializeFail, MissingRequired):
