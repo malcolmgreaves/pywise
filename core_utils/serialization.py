@@ -188,9 +188,6 @@ def deserialize(
 
     if isinstance(type_value, TypeVar):
         # is a generic type alias: cannot do much with this, so return as-is
-        import ipdb
-
-        ipdb.set_trace()
         return value
 
     checking_type_value: Type = checkable_type(type_value)
@@ -365,11 +362,6 @@ def _dataclass_from_dict(
         try:
             field_and_types = list(_dataclass_field_types(dataclass_type))
         except AttributeError as ae:
-
-            import ipdb
-
-            ipdb.set_trace()
-
             raise TypeError(
                 "Did you pass-in a type that is decorated with @dataclass? "
                 "It needs a .__dataclass_fields__ member to obtain a list of field names "
@@ -377,6 +369,7 @@ def _dataclass_from_dict(
                 f"Type '{type_name(dataclass_type)}' does not work.",
                 ae,
             )
+
         deserialized_fields = _values_for_type(
             field_and_types, data, dataclass_type, custom
         )
@@ -429,41 +422,33 @@ def _fill(generic_to_concrete, generic_type):
 
 def _exec(origin_type, tn):
     module, _ = split_module_value(type_name(origin_type, keep_main=True))
-    try:
-        m_bits = module.split(".")
-        # fmt: off
-        e_str = (
-            f"import typing\n"
-            f"from typing import *\n"
-        )
-        # fmt: on
-        for i in range(1, len(m_bits)):
-            m = ".".join(m_bits[0:i])
-            # fmt: off
-            e_str += (
-                f"import {m}\n"
-                f"from {m} import *\n"
-                f"from {m} import {m_bits[i]}\n"
-            )
-            # fmt: on
-        ____typ = "____typ"
+    m_bits = module.split(".")
+    # fmt: off
+    e_str = (
+        f"import typing\n"
+        f"from typing import *\n"
+    )
+    # fmt: on
+    for i in range(1, len(m_bits)):
+        m = ".".join(m_bits[0:i])
         # fmt: off
         e_str += (
-            f"from {'.'.join(m_bits)} import *\n"
-            f"{____typ} = {tn}"
+            f"import {m}\n"
+            f"from {m} import *\n"
+            f"from {m} import {m_bits[i]}\n"
         )
         # fmt: on
-        namespace = globals().copy()
-        print(e_str)
-        exec(e_str, namespace)
-        typ = namespace[____typ]
-        return typ
-
-    except:
-        import ipdb
-
-        ipdb.set_trace()
-        raise
+    ____typ = "____typ"
+    # fmt: off
+    e_str += (
+        f"from {'.'.join(m_bits)} import *\n"
+        f"{____typ} = {tn}"
+    )
+    # fmt: on
+    namespace = globals().copy()
+    exec(e_str, namespace)
+    typ = namespace[____typ]
+    return typ
 
 
 def _values_for_type(
@@ -515,9 +500,6 @@ def _values_for_type(
         elif _is_optional(field_type):  # type: ignore
             value = None
         else:
-            import ipdb
-
-            ipdb.set_trace()
             raise MissingRequired(
                 field_name=field_name,
                 field_expected_type=field_type,

@@ -69,19 +69,29 @@ def test_serialize_generic_complex_nested():
         ],
     ](
         SimpleGeneric[str]("i am a str"),
-        NestedGeneric[
-            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+        SimpleGeneric[
+            NestedGeneric[
+                int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+            ]
         ](
-            SimpleGeneric[int](999),
-            NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]](
-                SimpleGeneric[float](-1.0),
-                NestedGeneric[List[int], Mapping[str, int]](
-                    SimpleGeneric[List[int]]([0, 2, 4, 6, 8, 10]),
-                    SimpleGeneric[Mapping[str, int]](
-                        {"hello": 0, "how": 78892, "are": -12561, "you?": 463},
+            NestedGeneric[
+                int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
+            ](
+                SimpleGeneric[int](999),
+                SimpleGeneric[
+                    NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
+                ](
+                    SimpleGeneric[float](-1.0),
+                    SimpleGeneric[NestedGeneric[List[int], Mapping[str, int]]](
+                        NestedGeneric[List[int], Mapping[str, int]](
+                            SimpleGeneric[List[int]]([0, 2, 4, 6, 8, 10]),
+                            SimpleGeneric[Mapping[str, int]](
+                                {"hello": 0, "how": 78892, "are": -12561, "you?": 463},
+                            ),
+                        )
                     ),
                 ),
-            ),
+            )
         ),
     )
 
