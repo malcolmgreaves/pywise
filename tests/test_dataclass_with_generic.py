@@ -2,7 +2,12 @@ from typing import Tuple, Any, Type, List, Mapping
 
 from pytest import fixture
 
-from core_utils.support_for_testing import SimpleGeneric, NestedGeneric, SimpleNoGen
+from core_utils.support_for_testing import (
+    SimpleGeneric,
+    NestedGeneric,
+    SimpleNoGen,
+    NestedNoGen,
+)
 
 from core_utils.serialization import (
     serialize,
@@ -193,3 +198,13 @@ def test_generic_wo_holes():
     x = SimpleNoGen[float](10, "hello")
     assert deserialize(SimpleNoGen[float], serialize(x)) == x
     assert deserialize(SimpleNoGen, serialize(x)) == x
+    assert deserialize(SimpleNoGen[Any], serialize(x)) == x
+
+    x = NestedNoGen[bytes, type, list](
+        mo=SimpleNoGen[bytes](age=109, name="Mo"),
+        larry=SimpleNoGen[bytes](age=42, name="Larry"),
+        curly=SimpleNoGen[bytes](age=-6, name="Curly"),
+    )
+    assert deserialize(NestedNoGen[bytes, type, list], serialize(x)) == x
+    assert deserialize(NestedNoGen, serialize(x)) == x
+    assert deserialize(NestedNoGen[Any, Any, Any], serialize(x)) == x

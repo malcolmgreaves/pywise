@@ -45,6 +45,7 @@ def test_type_name():
         pass
 
     tests = [
+        (typing.Any, "typing.Any"),
         (str, "str"),
         (float, "float"),
         (int, "int"),

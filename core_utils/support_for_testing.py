@@ -31,8 +31,9 @@ class SimpleNoGen(Generic[T]):
     age: int
     name: str
 
+
 @dataclass(frozen=True)
-class NestedNoGen(Generic[T,A,B]):
+class NestedNoGen(Generic[T, A, B]):
     mo: SimpleNoGen[T]
     larry: SimpleNoGen[A]
     curly: SimpleNoGen[B]

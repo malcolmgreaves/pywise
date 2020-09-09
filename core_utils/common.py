@@ -14,6 +14,9 @@ def type_name(t: type, keep_main: bool = True) -> str:
     if mod == "builtins":
         return t.__name__
 
+    if t is Any:
+        return "typing.Any"
+
     if str(t).startswith("typing.Union"):
         try:
             args = t.__args__  # type: ignore
