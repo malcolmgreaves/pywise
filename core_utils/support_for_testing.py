@@ -15,7 +15,3 @@ class SimpleGeneric(Generic[T]):
 class NestedGeneric(Generic[A, B]):
     v1: SimpleGeneric[A]
     v2: SimpleGeneric[B]
-
-    @property
-    def values(self) -> Tuple[A, B]:
-        return self.v1.value, self.v2.value
