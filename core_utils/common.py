@@ -1,5 +1,5 @@
 from importlib import import_module
-from typing import _GenericAlias, Any, Tuple, Optional, Type, _type_repr, TypeVar  # type: ignore
+from typing import _GenericAlias, Any, Tuple, Optional, Type, TypeVar  # type: ignore
 
 
 def type_name(t: type, keep_main: bool = True) -> str:

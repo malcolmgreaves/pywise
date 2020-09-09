@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import (  # type: ignore
+from typing import (
     Any,
     Iterable,
     Type,
@@ -11,7 +11,6 @@ from typing import (  # type: ignore
     Optional,
     Iterator,
     Sequence,
-    Union,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
@@ -403,8 +402,8 @@ def _exec(origin_type, tn):
     m_bits = module.split(".")
     # fmt: off
     e_str = (
-        f"import typing\n"
-        f"from typing import *\n"
+        "import typing\n"
+        "from typing import *\n"
     )
     # fmt: on
     for i in range(1, len(m_bits)):
