@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import (  # type: ignore
+from typing import (
     Any,
     Iterable,
     Type,
@@ -9,10 +9,12 @@ from typing import (  # type: ignore
     TypeVar,
     Callable,
     Optional,
+    Iterator,
+    Sequence,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
-from core_utils.common import type_name, checkable_type
+from core_utils.common import type_name, checkable_type, split_module_value
 
 __all__ = [
     "serialize",
@@ -66,27 +68,27 @@ def serialize(
 
     elif is_namedtuple(value):
         return {
-            k: serialize(raw_val, custom)
+            k: serialize(raw_val, custom, no_none_values)
             for k, raw_val in value._asdict().items()
             if (no_none_values and raw_val is not None) or (not no_none_values)
         }
 
     elif is_dataclass(value):
         return {
-            k: serialize(v, custom)
+            k: serialize(v, custom, no_none_values)
             for k, v in value.__dict__.items()
             if (no_none_values and v is not None) or (not no_none_values)
         }
 
     elif isinstance(value, Mapping):
         return {
-            serialize(k, custom): serialize(v, custom)
+            serialize(k, custom, no_none_values): serialize(v, custom, no_none_values)
             for k, v in value.items()
             if (no_none_values and v is not None) or (not no_none_values)
         }
 
     elif isinstance(value, Iterable) and not isinstance(value, str):
-        return list(map(lambda x: serialize(x, custom), value))
+        return list(map(lambda x: serialize(x, custom, no_none_values), value))
 
     elif isinstance(value, Enum):
         # serialize the enum value's name as it's a better identifier than the
@@ -123,6 +125,10 @@ def deserialize(
         return custom[type_value](value)
 
     if type_value == Any:
+        return value
+
+    if isinstance(type_value, TypeVar):  # type: ignore
+        # is a generic type alias: cannot do much with this, so return as-is
         return value
 
     checking_type_value: Type = checkable_type(type_value)
@@ -286,19 +292,16 @@ def _namedtuple_field_types(
 
 
 def _dataclass_from_dict(
-    dataclass_type: Type, data: dict, custom: Optional[CustomFormat] = None
+    dataclass_type: Type, data: dict, custom: Optional[CustomFormat],
 ) -> Any:
     """Constructs an @dataclass instance using :param:`data`.
     """
-    if is_dataclass(dataclass_type):
+    is_generic_dataclass = hasattr(dataclass_type, "__origin__") and is_dataclass(
+        dataclass_type.__origin__
+    )
+    if is_dataclass(dataclass_type) or is_generic_dataclass:
         try:
             field_and_types = list(_dataclass_field_types(dataclass_type))
-            deserialized_fields = _values_for_type(
-                field_and_types, data, dataclass_type, custom
-            )
-            field_values = dict(
-                zip(map(lambda x: x[0], field_and_types), deserialized_fields)
-            )
         except AttributeError as ae:
             raise TypeError(
                 "Did you pass-in a type that is decorated with @dataclass? "
@@ -307,6 +310,14 @@ def _dataclass_from_dict(
                 f"Type '{type_name(dataclass_type)}' does not work.",
                 ae,
             )
+
+        deserialized_fields = _values_for_type(
+            field_and_types, data, dataclass_type, custom
+        )
+        deserialized_fields = list(deserialized_fields)
+        field_values = dict(
+            zip(map(lambda x: x[0], field_and_types), deserialized_fields)
+        )
         instantiated_dataclass = dataclass_type(**field_values)
         return instantiated_dataclass
     else:
@@ -319,18 +330,112 @@ def _dataclass_from_dict(
 def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
+    if hasattr(dataclass_type, "__origin__"):
+        dataclass_fields = dataclass_type.__origin__.__dataclass_fields__  # type: ignore
+        generic_to_concrete = dict(_align_generic_concrete(dataclass_type))
 
-    def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
-        return data_field.name, data_field.type
+        def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
+            if data_field.type in generic_to_concrete:
+                typ = generic_to_concrete[data_field.type]
+            else:
+                tn = _fill(generic_to_concrete, data_field.type)
+                typ = _exec(data_field.type.__origin__, tn)
+            return data_field.name, typ
 
-    return list(map(as_name_and_type, dataclass_type.__dataclass_fields__.values()))
+    else:
+        dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
+
+        def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
+            return data_field.name, data_field.type
+
+    return list(map(as_name_and_type, dataclass_fields.values()))
+
+
+def _align_generic_concrete(
+    data_type_with_generics: Type,
+) -> Iterator[Tuple[Type, Type]]:
+    """Yields pairs of (parameterized type name, runtime type value) for the input type.
+
+    Accepts a class type that has parameterized generic types.
+    Returns an iterator that yields pairs of (generic type variable name, instantiated type).
+
+    NOTE: If the supplied type derives from a Sequence or Mapping,
+          then the generics will be handled appropriately.
+    """
+    try:
+        origin = data_type_with_generics.__origin__
+        if issubclass(origin, Sequence):
+            generics = [TypeVar("T")]  # type: ignore
+            values = data_type_with_generics.__args__
+        elif issubclass(origin, Mapping):
+            generics = [TypeVar("KT"), TypeVar("VT_co")]  # type: ignore
+            values = data_type_with_generics.__args__
+        else:
+            # should be a dataclass
+            generics = origin.__parameters__  # type: ignore
+            values = data_type_with_generics.__args__  # type: ignore
+        for g, v in zip(generics, values):
+            yield g, v
+    except AttributeError as e:
+        raise ValueError(
+            f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
+            e,
+        )
+
+
+def _fill(generic_to_concrete, generic_type):
+    """Fill-in the parameterized types in generic_type using the generic-to-concrete type mapping.
+    """
+    tn = type_name(generic_type, keep_main=False)
+    for g in generic_type.__parameters__:
+        tn = tn.replace(
+            str(type_name(g, keep_main=False)),
+            str(type_name(generic_to_concrete[g], keep_main=False)),
+        )
+    return tn
+
+
+def _exec(origin_type, tn):
+    """Using the module where `origin_type` is defined, instantiate the class defined in the `tn` string.
+    """
+    module, _ = split_module_value(type_name(origin_type, keep_main=True))
+    m_bits = module.split(".")
+    # fmt: off
+    e_str = (
+        "import typing\n"
+        "from typing import *\n"
+    )
+    # fmt: on
+    for i in range(1, len(m_bits)):
+        m = ".".join(m_bits[0:i])
+        # fmt: off
+        e_str += (
+            f"import {m}\n"
+            f"from {m} import *\n"
+            f"from {m} import {m_bits[i]}\n"
+        )
+        # fmt: on
+    ____typ = "____typ"
+    # fmt: off
+    e_str += (
+        f"from {'.'.join(m_bits)} import *\n"
+        f"{____typ} = {tn}"
+    )
+    # fmt: on
+    namespace = globals().copy()
+    try:
+        exec(e_str, namespace)
+    except Exception as e:
+        raise ValueError(f"ERROR: tried to reify type with:\n{e_str}", e)
+    typ = namespace[____typ]
+    return typ
 
 
 def _values_for_type(
     field_name_expected_type: Iterable[Tuple[str, Type]],
     data: dict,
     type_data: Type,
-    custom: Optional[CustomFormat] = None,
+    custom: Optional[CustomFormat],
 ) -> Iterable:
     """Constructs an instance of :param:`type_data` using the data in :param:`data`, with
     field names & expected types of :param:`field_name_expected_type` guiding construction.

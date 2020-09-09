@@ -1,8 +1,8 @@
 from importlib import import_module
-from typing import _GenericAlias, Any, Tuple, Optional, Type  # type: ignore
+from typing import _GenericAlias, Any, Tuple, Optional, Type, TypeVar  # type: ignore
 
 
-def type_name(t: type) -> str:
+def type_name(t: type, keep_main: bool = True) -> str:
     """Complete name, module & specific type name, for the given type.
     Does not supply the module in the returned complete name for built-in types.
 
@@ -27,14 +27,21 @@ def type_name(t: type) -> str:
     if issubclass(type(t), _GenericAlias):
         return str(t)
 
+    if isinstance(t, TypeVar):  # type: ignore
+        return str(t)
+
     full_name = f"{mod}.{t.__name__}"
     try:
         # generic parameters ?
         args = tuple(map(type_name, t.__args__))  # type: ignore
         a = ", ".join(args)
-        return f"{full_name}[{a}]"
+        complete_type_name = f"{full_name}[{a}]"
     except Exception:
-        return full_name
+        complete_type_name = full_name
+
+    if not keep_main:
+        complete_type_name = complete_type_name.replace("__main__.", "")
+    return complete_type_name
 
 
 def import_by_name(full_name: str, validate: bool = True) -> Any:
