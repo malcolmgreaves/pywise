@@ -424,7 +424,10 @@ def _exec(origin_type, tn):
     )
     # fmt: on
     namespace = globals().copy()
-    exec(e_str, namespace)
+    try:
+        exec(e_str, namespace)
+    except Exception as e:
+        raise ValueError(f"ERROR: tried to reify type with:\n{e_str}", e)
     typ = namespace[____typ]
     return typ
 
