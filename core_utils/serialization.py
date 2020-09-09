@@ -337,9 +337,11 @@ def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
         def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
             if data_field.type in generic_to_concrete:
                 typ = generic_to_concrete[data_field.type]
-            else:
+            elif hasattr(data_field.type, "__parameters__"):
                 tn = _fill(generic_to_concrete, data_field.type)
                 typ = _exec(data_field.type.__origin__, tn)
+            else:
+                typ = data_field.type
             return data_field.name, typ
 
     else:
