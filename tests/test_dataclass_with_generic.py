@@ -2,7 +2,12 @@ from typing import Tuple, Any, Type, List, Mapping
 
 from pytest import fixture
 
-from core_utils.support_for_testing import SimpleGeneric, NestedGeneric
+from core_utils.support_for_testing import (
+    SimpleGeneric,
+    NestedGeneric,
+    SimpleNoGen,
+    NestedNoGen,
+)
 
 from core_utils.serialization import (
     serialize,
@@ -187,3 +192,20 @@ def test_align_generic_concrete_complex_nested():
     assert len(x_map) == 2
     _align(x_map[0], "KT", str)
     _align(x_map[1], "VT_co", int)
+
+
+def test_generic_wo_holes():
+    x = SimpleNoGen[float](10, "hello")
+    assert deserialize(SimpleNoGen[float], serialize(x)) == x
+    assert deserialize(SimpleNoGen, serialize(x)) == x
+    assert deserialize(SimpleNoGen[Any], serialize(x)) == x
+
+    x = NestedNoGen[bytes, type, list](
+        group_name="The Three Stooges",
+        a=SimpleNoGen[bytes](age=109, name="Mo"),
+        b=SimpleNoGen[bytes](age=42, name="Larry"),
+        c=SimpleNoGen[bytes](age=-6, name="Curly"),
+    )
+    assert deserialize(NestedNoGen[bytes, type, list], serialize(x)) == x
+    assert deserialize(NestedNoGen, serialize(x)) == x
+    assert deserialize(NestedNoGen[Any, Any, Any], serialize(x)) == x
