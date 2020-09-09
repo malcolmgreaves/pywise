@@ -129,9 +129,7 @@ def deserialize(
     """
 
     if hasattr(type_value, "__origin__") and is_dataclass(type_value.__origin__):
-        generic_to_concrete = {
-            str(g): c for g, c in _align_generic_concrete_flatten(type_value)
-        }
+        generic_to_concrete = _align_generic_concrete_map(type_value)
     else:
         generic_to_concrete = dict()
 
@@ -148,6 +146,26 @@ def _align_generic_concrete_flatten(
         if hasattr(concrete_type, "__origin__"):
             for g, c in _align_generic_concrete_flatten(concrete_type):
                 yield g, c
+
+
+def _align_generic_concrete_map(
+    data_type_with_generics: Type,
+) -> Mapping[str, Union[Type, Mapping[str, Any]]]:
+    return {
+        str(generic_type): _align_generic_concrete_map(concrete_type)
+        if hasattr(concrete_type, "__origin__")
+        else concrete_type
+        for generic_type, concrete_type in _align_generic_concrete(
+            data_type_with_generics
+        )
+    }
+
+    # for generic_type, concrete_type in _align_generic_concrete(data_type_with_generics):
+    #     if hasattr(concrete_type, "__origin__"):
+    #         concrete_types = _align_generic_concrete_map(concrete_type)
+    #     else:
+    #         concrete_types = concrete_type
+    #     yield generic_type, concrete_types
 
 
 def _align_generic_concrete(
@@ -379,6 +397,7 @@ def _dataclass_from_dict(
             field_and_types = list(
                 _dataclass_field_types(dataclass_type, generic_to_concrete)
             )
+            print(field_and_types)
             deserialized_fields = _values_for_type(
                 field_and_types, data, dataclass_type, custom, generic_to_concrete
             )
