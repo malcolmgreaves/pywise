@@ -64,38 +64,32 @@ def serialize(
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
     """
-    return _serialize(value, custom, no_none_values)
-
-
-def _serialize(value: Any, custom: Optional[CustomFormat], no_none_values: bool) -> Any:
-    """Does the work of :func:`serialize`.
-    """
     if custom is not None and type(value) in custom:
         return custom[type(value)](value)
 
     elif is_namedtuple(value):
         return {
-            k: _serialize(raw_val, custom, no_none_values)
+            k: serialize(raw_val, custom, no_none_values)
             for k, raw_val in value._asdict().items()
             if (no_none_values and raw_val is not None) or (not no_none_values)
         }
 
     elif is_dataclass(value):
         return {
-            k: _serialize(v, custom, no_none_values)
+            k: serialize(v, custom, no_none_values)
             for k, v in value.__dict__.items()
             if (no_none_values and v is not None) or (not no_none_values)
         }
 
     elif isinstance(value, Mapping):
         return {
-            _serialize(k, custom, no_none_values): _serialize(v, custom, no_none_values)
+            serialize(k, custom, no_none_values): serialize(v, custom, no_none_values)
             for k, v in value.items()
             if (no_none_values and v is not None) or (not no_none_values)
         }
 
     elif isinstance(value, Iterable) and not isinstance(value, str):
-        return list(map(lambda x: _serialize(x, custom, no_none_values), value))
+        return list(map(lambda x: serialize(x, custom, no_none_values), value))
 
     elif isinstance(value, Enum):
         # serialize the enum value's name as it's a better identifier than the
@@ -106,37 +100,6 @@ def _serialize(value: Any, custom: Optional[CustomFormat], no_none_values: bool)
 
     else:
         return value
-
-
-def deserialize(
-    type_value: Type, value: Any, custom: Optional[CustomFormat] = None,
-) -> Any:
-    """Does final conversion of the `dict`-like `value` into an instance of `type_value`.
-
-    NOTE: If the input type `type_value` is a sequence, then deserialization is attempted on each
-    element. If it is a `dict`, then deserialization is attempted on each key and value. If this
-    specified type is a namedtuple, dataclass, or enum, then it will be appropriately handled.
-    Values without these explicit types are returned as-is.
-
-    The :param:`custom` optional mapping provides callers with the ability to handle deserialization
-    of complex types that are from an external source. E.g. To deserialize `numpy` arrays, one may use:
-    ```
-    custom = {numpy.ndarray: lambda lst: numpy.array(lst)}
-    ```
-    NOTE: If :param:`custom` is present, its deserialization functions are given priority.
-    NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
-          type parametrization.
-    """
-
-    if hasattr(type_value, "__origin__") and is_dataclass(type_value.__origin__):
-        # generic_to_concrete = _align_generic_concrete_map(type_value)
-        generic_to_concrete = dict(_align_generic_concrete(type_value))
-    else:
-        generic_to_concrete = dict()
-
-    return _deserialize(
-        type_value, value, custom=custom, generic_to_concrete=generic_to_concrete
-    )
 
 
 def _align_generic_concrete_flatten(
@@ -197,22 +160,37 @@ def _align_generic_concrete(
         )
 
 
-def _deserialize(
-    type_value: Type,
-    value: Any,
-    custom: Optional[CustomFormat],
-    generic_to_concrete: Mapping[str, Type],
+def deserialize(
+    type_value: Type, value: Any, custom: Optional[CustomFormat] = None,
 ) -> Any:
-    """Does the work of :func:`deserialize`.
+    """Does final conversion of the `dict`-like `value` into an instance of `type_value`.
+
+    NOTE: If the input type `type_value` is a sequence, then deserialization is attempted on each
+    element. If it is a `dict`, then deserialization is attempted on each key and value. If this
+    specified type is a namedtuple, dataclass, or enum, then it will be appropriately handled.
+    Values without these explicit types are returned as-is.
+
+    The :param:`custom` optional mapping provides callers with the ability to handle deserialization
+    of complex types that are from an external source. E.g. To deserialize `numpy` arrays, one may use:
+    ```
+    custom = {numpy.ndarray: lambda lst: numpy.array(lst)}
+    ```
+    NOTE: If :param:`custom` is present, its deserialization functions are given priority.
+    NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
+          type parametrization.
     """
+
     if custom is not None and type_value in custom:
         return custom[type_value](value)
 
     if type_value == Any:
         return value
 
-    if str(type_value).startswith("~"):
+    if isinstance(type_value, TypeVar):
         # is a generic type alias: cannot do much with this, so return as-is
+        import ipdb
+
+        ipdb.set_trace()
         return value
 
     checking_type_value: Type = checkable_type(type_value)
@@ -221,7 +199,7 @@ def _deserialize(
         return _namedtuple_from_dict(type_value, value, custom)
 
     elif is_dataclass(checking_type_value):
-        return _dataclass_from_dict(type_value, value, custom, generic_to_concrete)
+        return _dataclass_from_dict(type_value, value, custom)
 
     # NOTE: Need to have type_value instead of checking_type_value here !
     elif _is_optional(type_value):
@@ -229,9 +207,7 @@ def _deserialize(
         if value is None:
             return None
         else:
-            return _deserialize(
-                type_value.__args__[0], value, custom, generic_to_concrete
-            )
+            return deserialize(type_value.__args__[0], value, custom)
 
     # NOTE: Need to have type_value instead of checking_type_value here !
     elif _is_union(type_value):
@@ -239,7 +215,7 @@ def _deserialize(
             # try to deserialize the value using one of its
             # possible types
             try:
-                return _deserialize(possible_type, value, custom, generic_to_concrete)
+                return deserialize(possible_type, value, custom)
             except Exception:
                 pass
         raise FieldDeserializeFail(
@@ -249,17 +225,15 @@ def _deserialize(
     elif issubclass(checking_type_value, Mapping):
         k_type, v_type = type_value.__args__  # type: ignore
         return {
-            _deserialize(k_type, k, custom, generic_to_concrete): _deserialize(
-                v_type, v, custom, generic_to_concrete
-            )
+            deserialize(k_type, k, custom): deserialize(v_type, v, custom)
             for k, v in value.items()
         }
 
     elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
         tuple_type_args = type_value.__args__
         converted = map(
-            lambda type_val_pair: _deserialize(
-                type_val_pair[0], type_val_pair[1], custom, generic_to_concrete
+            lambda type_val_pair: deserialize(
+                type_val_pair[0], type_val_pair[1], custom
             ),
             zip(tuple_type_args, value),
         )
@@ -267,9 +241,7 @@ def _deserialize(
 
     elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
         (i_type,) = type_value.__args__  # type: ignore
-        converted = map(
-            lambda x: _deserialize(i_type, x, custom, generic_to_concrete), value
-        )
+        converted = map(lambda x: deserialize(i_type, x, custom), value)
         if issubclass(checking_type_value, Set):
             return set(converted)
         else:
@@ -382,10 +354,7 @@ def _namedtuple_field_types(
 
 
 def _dataclass_from_dict(
-    dataclass_type: Type,
-    data: dict,
-    custom: Optional[CustomFormat],
-    generic_to_concrete: Mapping[str, Type],
+    dataclass_type: Type, data: dict, custom: Optional[CustomFormat],
 ) -> Any:
     """Constructs an @dataclass instance using :param:`data`.
     """
@@ -394,18 +363,13 @@ def _dataclass_from_dict(
     )
     if is_dataclass(dataclass_type) or is_generic_dataclass:
         try:
-            field_and_types = list(
-                _dataclass_field_types(dataclass_type, generic_to_concrete)
-            )
-            print(field_and_types)
-            deserialized_fields = _values_for_type(
-                field_and_types, data, dataclass_type, custom, generic_to_concrete
-            )
-            deserialized_fields = list(deserialized_fields)
-            field_values = dict(
-                zip(map(lambda x: x[0], field_and_types), deserialized_fields)
-            )
+            field_and_types = list(_dataclass_field_types(dataclass_type))
         except AttributeError as ae:
+
+            import ipdb
+
+            ipdb.set_trace()
+
             raise TypeError(
                 "Did you pass-in a type that is decorated with @dataclass? "
                 "It needs a .__dataclass_fields__ member to obtain a list of field names "
@@ -413,6 +377,13 @@ def _dataclass_from_dict(
                 f"Type '{type_name(dataclass_type)}' does not work.",
                 ae,
             )
+        deserialized_fields = _values_for_type(
+            field_and_types, data, dataclass_type, custom
+        )
+        deserialized_fields = list(deserialized_fields)
+        field_values = dict(
+            zip(map(lambda x: x[0], field_and_types), deserialized_fields)
+        )
         instantiated_dataclass = dataclass_type(**field_values)
         return instantiated_dataclass
     else:
@@ -422,37 +393,37 @@ def _dataclass_from_dict(
         )
 
 
-def _dataclass_field_types(
-    dataclass_type: Type, generic_to_concrete: Mapping[str, Type]
-) -> Iterable[Tuple[str, Type]]:
+def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
     if hasattr(dataclass_type, "__origin__"):
         dataclass_fields = dataclass_type.__origin__.__dataclass_fields__  # type: ignore
+        generic_to_concrete = dict(_align_generic_concrete(dataclass_type))
+
+        def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
+            if data_field.type in generic_to_concrete:
+                typ = generic_to_concrete[data_field.type]
+            else:
+                tn = _fill(generic_to_concrete, data_field.type)
+                typ = _exec(data_field.type.__origin__, tn)
+            return data_field.name, typ
+
     else:
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
-    def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
-        if hasattr(data_field.type, "__origin__"):
-            tn = _fill(generic_to_concrete, data_field.type)
-            typ = _exec(data_field.type.__origin__, tn)
-        else:
-            typ = data_field.type
-        return data_field.name, typ
+        def as_name_and_type(data_field):
+            return data_field.name, data_field.type
 
     return list(map(as_name_and_type, dataclass_fields.values()))
 
 
 def _fill(generic_to_concrete, generic_type):
     tn = type_name(generic_type, keep_main=False)
-    # print(tn+" !")
-    for g in generic_type.__args__:
-        # print("\t"+str(type_name(g, keep_main=False)))
+    for g in generic_type.__parameters__:
         tn = tn.replace(
             str(type_name(g, keep_main=False)),
             str(type_name(generic_to_concrete[g], keep_main=False)),
         )
-        # print("\t >> "+tn)
     return tn
 
 
@@ -482,11 +453,10 @@ def _exec(origin_type, tn):
             f"{____typ} = {tn}"
         )
         # fmt: on
-        print(f"\n\n{e_str}\n\n")
         namespace = globals().copy()
+        print(e_str)
         exec(e_str, namespace)
         typ = namespace[____typ]
-        print(f"OMG???: {typ}")
         return typ
 
     except:
@@ -496,24 +466,11 @@ def _exec(origin_type, tn):
         raise
 
 
-# def _resolve(generic_to_concrete: Mapping[str, Type], data_type: Type) -> Type:
-#     if hasattr(data_type, '__origin__'):
-#         resolved = type_name(data_type)
-#         for generic_type in data_type.__args__:
-#             resolved = f"{resolved.replace(generic_type, type_name(generic_to_concrete[generic_type]))}"
-#         print(resolved)
-#         return eval(resolved)
-#
-#     else:
-#         return data_type
-
-
 def _values_for_type(
     field_name_expected_type: Iterable[Tuple[str, Type]],
     data: dict,
     type_data: Type,
     custom: Optional[CustomFormat],
-    generic_to_concrete: Mapping[str, Any],
 ) -> Iterable:
     """Constructs an instance of :param:`type_data` using the data in :param:`data`, with
     field names & expected types of :param:`field_name_expected_type` guiding construction.
@@ -569,7 +526,7 @@ def _values_for_type(
 
         try:
             if value is not None:
-                yield _deserialize(field_type, value, custom, generic_to_concrete)  # type: ignore
+                yield deserialize(field_type, value, custom)  # type: ignore
             else:
                 yield None
         except (FieldDeserializeFail, MissingRequired):
