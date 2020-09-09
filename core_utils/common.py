@@ -1,40 +1,18 @@
 from importlib import import_module
-from typing import _GenericAlias, Any, Tuple, Optional, Type  # type: ignore
+from typing import _GenericAlias, Any, Tuple, Optional, Type, _type_repr  # type: ignore
 
 
-def type_name(t: type) -> str:
+def type_name(t: type, keep_main: bool = True) -> str:
     """Complete name, module & specific type name, for the given type.
     Does not supply the module in the returned complete name for built-in types.
 
     When possible, also adds generic type arguments (w/ their at-runtime values)
     in the returned full type name.
     """
-    # TODO: Replace function with `typing._type_repr` ???
-    mod = t.__module__
-    if mod == "builtins":
-        return t.__name__
-
-    if str(t).startswith("typing.Union"):
-        try:
-            args = t.__args__  # type: ignore
-            if len(args) == 2 and args[1] == type(None):  # noqa: E721
-                # an Optional type is equivalent to Union[T, None]
-                return f"typing.Optional[{type_name(args[0])}]"
-        except Exception:
-            pass
-        return str(t)
-
-    if issubclass(type(t), _GenericAlias):
-        return str(t)
-
-    full_name = f"{mod}.{t.__name__}"
-    try:
-        # generic parameters ?
-        args = tuple(map(type_name, t.__args__))  # type: ignore
-        a = ", ".join(args)
-        return f"{full_name}[{a}]"
-    except Exception:
-        return full_name
+    complete_type_name = _type_repr(t)
+    if not keep_main:
+        complete_type_name = complete_type_name.replace("__main__.", "")
+    return complete_type_name
 
 
 def import_by_name(full_name: str, validate: bool = True) -> Any:

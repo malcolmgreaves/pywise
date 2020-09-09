@@ -44,7 +44,7 @@ def _test_more_complex_dict_type_representation(t):
 
 
 def _test_with_optional_dict_type_representation(t):
-    expected = {"level": "int", "maybe": "typing.Optional[int]"}
+    expected = {"level": "int", "maybe": "typing.Union[int, NoneType]"}
     assert dict_type_representation(t) == expected
 
 

@@ -49,20 +49,20 @@ def test_type_name():
         (float, "float"),
         (int, "int"),
         (Path, "pathlib.Path"),
-        (NTX, "tests.test_common.NTX"),
-        (DTX, "tests.test_common.DTX"),
+        (NTX, "test_common.NTX"),
+        (DTX, "test_common.DTX"),
         (Union[float, str], "typing.Union[float, str]"),
-        (Optional[int], "typing.Optional[int]"),
+        (Optional[int], "typing.Union[int, NoneType]"),
         (ValueError, "ValueError"),
-        (X, "tests.test_common.X"),
-        (Constrained, "tests.test_common.Constrained"),
+        (X, "test_common.test_type_name.<locals>.X"),
+        (Constrained, "test_common.Constrained"),
         (
             WithTypeParams[float, int, NTX],
-            "tests.test_common.WithTypeParams[float, int, tests.test_common.NTX]",
+            "test_common.WithTypeParams[float, int, test_common.NTX]",
         ),
         (
             WithTypeParams[float, int, DTX],
-            "tests.test_common.WithTypeParams[float, int, tests.test_common.DTX]",
+            "test_common.WithTypeParams[float, int, test_common.DTX]",
         ),
     ]
     for inp, expected in tests:
@@ -84,7 +84,7 @@ def test_import_by_name():
         l = import_by_name(t)
         assert l == x
 
-    assert Constrained == import_by_name("tests.test_common.Constrained")
+    assert Constrained == import_by_name("test_common.Constrained")
 
     assert typing == import_by_name("typing")
 
