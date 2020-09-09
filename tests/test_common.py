@@ -40,10 +40,6 @@ class DTX:
     name: str
 
 
-# _t = "tests."
-__T_prefix = ""
-
-
 def test_type_name():
     class X:
         pass
@@ -53,20 +49,20 @@ def test_type_name():
         (float, "float"),
         (int, "int"),
         (Path, "pathlib.Path"),
-        (NTX, f"{__T_prefix}test_common.NTX"),
-        (DTX, f"{__T_prefix}test_common.DTX"),
+        (NTX, "test_common.NTX"),
+        (DTX, "test_common.DTX"),
         (Union[float, str], "typing.Union[float, str]"),
-        (Optional[int], "typing.Union[int, NoneType]"),
+        (Optional[int], "typing.Optional[int]"),
         (ValueError, "ValueError"),
-        (X, f"{__T_prefix}test_common.test_type_name.<locals>.X"),
-        (Constrained, f"{__T_prefix}test_common.Constrained"),
+        (X, "test_common.X"),
+        (Constrained, "test_common.Constrained"),
         (
             WithTypeParams[float, int, NTX],
-            f"{__T_prefix}test_common.WithTypeParams[float, int, {__T_prefix}test_common.NTX]",
+            "test_common.WithTypeParams[float, int, test_common.NTX]",
         ),
         (
             WithTypeParams[float, int, DTX],
-            f"{__T_prefix}test_common.WithTypeParams[float, int, {__T_prefix}test_common.DTX]",
+            "test_common.WithTypeParams[float, int, test_common.DTX]",
         ),
     ]
     for inp, expected in tests:
@@ -88,7 +84,7 @@ def test_import_by_name():
         l = import_by_name(t)
         assert l == x
 
-    assert Constrained == import_by_name(f"{__T_prefix}test_common.Constrained")
+    assert Constrained == import_by_name("test_common.Constrained")
 
     assert typing == import_by_name("typing")
 
