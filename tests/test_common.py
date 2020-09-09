@@ -44,25 +44,28 @@ def test_type_name():
     class X:
         pass
 
+    # _t = "tests."
+    _t = ""
+
     tests = [
         (str, "str"),
         (float, "float"),
         (int, "int"),
         (Path, "pathlib.Path"),
-        (NTX, "tests.test_common.NTX"),
-        (DTX, "tests.test_common.DTX"),
+        (NTX, f"{_t}test_common.NTX"),
+        (DTX, f"{_t}test_common.DTX"),
         (Union[float, str], "typing.Union[float, str]"),
         (Optional[int], "typing.Optional[int]"),
         (ValueError, "ValueError"),
-        (X, "tests.test_common.X"),
-        (Constrained, "tests.test_common.Constrained"),
+        (X, f"{_t}test_common.X"),
+        (Constrained, f"{_t}test_common.Constrained"),
         (
             WithTypeParams[float, int, NTX],
-            "tests.test_common.WithTypeParams[float, int, tests.test_common.NTX]",
+            f"{_t}test_common.WithTypeParams[float, int, {_t}test_common.NTX]",
         ),
         (
             WithTypeParams[float, int, DTX],
-            "tests.test_common.WithTypeParams[float, int, tests.test_common.DTX]",
+            f"{_t}test_common.WithTypeParams[float, int, {_t}test_common.DTX]",
         ),
     ]
     for inp, expected in tests:
@@ -84,7 +87,7 @@ def test_import_by_name():
         l = import_by_name(t)
         assert l == x
 
-    assert Constrained == import_by_name("tests.test_common.Constrained")
+    assert Constrained == import_by_name(f"{_t}test_common.Constrained")
 
     assert typing == import_by_name("typing")
 
