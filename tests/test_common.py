@@ -56,9 +56,9 @@ def test_type_name():
         (NTX, f"{__T_prefix}test_common.NTX"),
         (DTX, f"{__T_prefix}test_common.DTX"),
         (Union[float, str], "typing.Union[float, str]"),
-        (Optional[int], "typing.Optional[int]"),
+        (Optional[int], "typing.Union[int, NoneType]"),
         (ValueError, "ValueError"),
-        (X, f"{__T_prefix}test_common.X"),
+        (X, f"{__T_prefix}test_common.test_type_name.<locals>.X"),
         (Constrained, f"{__T_prefix}test_common.Constrained"),
         (
             WithTypeParams[float, int, NTX],
