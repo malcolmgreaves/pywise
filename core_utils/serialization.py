@@ -433,18 +433,9 @@ def _dataclass_field_types(
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
     def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
-        if hasattr(data_field.type, '__origin__'):
-            tn = type_name(data_field.type, keep_main=False)
-            print(tn+" !")
-            for g in data_field.type.__args__:
-                print("\t"+str(type_name(g, keep_main=False)))
-                tn = tn.replace(str(type_name(g, keep_main=False)),
-                                str(type_name(generic_to_concrete[g], keep_main=False)))
-                print("\t >> "+tn)
-
-            module, name = split_module_value(type_name(data_field.type.__origin__, keep_main=True))
-            print(f"\t{module}, {name}")
-            typ = eval(tn, {name: data_field.type.__origin__})
+        if hasattr(data_field.type, "__origin__"):
+            tn = _fill(generic_to_concrete, data_field.type)
+            typ = _exec(data_field.type.__origin__, tn)
         else:
             typ = data_field.type
         return data_field.name, typ
@@ -452,16 +443,69 @@ def _dataclass_field_types(
     return list(map(as_name_and_type, dataclass_fields.values()))
 
 
-def _resolve(generic_to_concrete: Mapping[str, Type], data_type: Type) -> Type:
-    if hasattr(data_type, '__origin__'):
-        resolved = type_name(data_type)
-        for generic_type in data_type.__args__:
-            resolved = f"{resolved.replace(generic_type, type_name(generic_to_concrete[generic_type]))}"
-        print(resolved)
-        return eval(resolved)
+def _fill(generic_to_concrete, generic_type):
+    tn = type_name(generic_type, keep_main=False)
+    # print(tn+" !")
+    for g in generic_type.__args__:
+        # print("\t"+str(type_name(g, keep_main=False)))
+        tn = tn.replace(
+            str(type_name(g, keep_main=False)),
+            str(type_name(generic_to_concrete[g], keep_main=False)),
+        )
+        # print("\t >> "+tn)
+    return tn
 
-    else:
-        return data_type
+
+def _exec(origin_type, tn):
+    module, _ = split_module_value(type_name(origin_type, keep_main=True))
+    try:
+        m_bits = module.split(".")
+        # fmt: off
+        e_str = (
+            f"import typing\n"
+            f"from typing import *\n"
+        )
+        # fmt: on
+        for i in range(1, len(m_bits)):
+            m = ".".join(m_bits[0:i])
+            # fmt: off
+            e_str += (
+                f"import {m}\n"
+                f"from {m} import *\n"
+                f"from {m} import {m_bits[i]}\n"
+            )
+            # fmt: on
+        ____typ = "____typ"
+        # fmt: off
+        e_str += (
+            f"from {'.'.join(m_bits)} import *\n"
+            f"{____typ} = {tn}"
+        )
+        # fmt: on
+        print(f"\n\n{e_str}\n\n")
+        namespace = globals().copy()
+        exec(e_str, namespace)
+        typ = namespace[____typ]
+        print(f"OMG???: {typ}")
+        return typ
+
+    except:
+        import ipdb
+
+        ipdb.set_trace()
+        raise
+
+
+# def _resolve(generic_to_concrete: Mapping[str, Type], data_type: Type) -> Type:
+#     if hasattr(data_type, '__origin__'):
+#         resolved = type_name(data_type)
+#         for generic_type in data_type.__args__:
+#             resolved = f"{resolved.replace(generic_type, type_name(generic_to_concrete[generic_type]))}"
+#         print(resolved)
+#         return eval(resolved)
+#
+#     else:
+#         return data_type
 
 
 def _values_for_type(

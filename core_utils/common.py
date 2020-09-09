@@ -2,7 +2,7 @@ from importlib import import_module
 from typing import _GenericAlias, Any, Tuple, Optional, Type, TypeVar  # type: ignore
 
 
-def type_name(t: type, keep_main:bool = True) -> str:
+def type_name(t: type, keep_main: bool = True) -> str:
     """Complete name, module & specific type name, for the given type.
     Does not supply the module in the returned complete name for built-in types.
 
@@ -44,7 +44,7 @@ def type_name(t: type, keep_main:bool = True) -> str:
         return f()
     else:
         fn = f()
-        return fn.replace('__main__.', '')
+        return fn.replace("__main__.", "")
 
 
 def import_by_name(full_name: str, validate: bool = True) -> Any:

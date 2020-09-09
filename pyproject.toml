@@ -6,6 +6,7 @@ authors = ["Malcolm Greaves <greaves.malcolm@gmail.com>"]
 homepage = "https://github.com/malcolmgreaves/pywise"
 license = "Apache-2.0"
 readme = 'README.md'
+exclude = ['core_utils/support_for_testing.py'] # NEVER INCLUDE THIS FILE (!)
 packages = [
     { include = "core_utils" },
 ]

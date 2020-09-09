@@ -1,7 +1,8 @@
-from dataclasses import dataclass
-from typing import Generic, TypeVar, Tuple, Any, Type, List, Mapping
+from typing import Tuple, Any, Type, List, Mapping
 
 from pytest import fixture
+
+from core_utils.support_for_testing import SimpleGeneric, NestedGeneric
 
 from core_utils.serialization import (
     serialize,
@@ -9,25 +10,6 @@ from core_utils.serialization import (
     _align_generic_concrete_flatten,
     _align_generic_concrete,
 )
-
-T = TypeVar("T")
-A = TypeVar("A")
-B = TypeVar("B")
-
-
-@dataclass(frozen=True)
-class SimpleGeneric(Generic[T]):
-    value: T
-
-
-@dataclass(frozen=True)
-class NestedGeneric(Generic[A, B]):
-    v1: SimpleGeneric[A]
-    v2: SimpleGeneric[B]
-
-    @property
-    def values(self) -> Tuple[A, B]:
-        return self.v1.value, self.v2.value
 
 
 @fixture(scope="module")
