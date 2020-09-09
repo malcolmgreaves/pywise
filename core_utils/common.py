@@ -1,8 +1,8 @@
 from importlib import import_module
-from typing import _GenericAlias, Any, Tuple, Optional, Type  # type: ignore
+from typing import _GenericAlias, Any, Tuple, Optional, Type, TypeVar  # type: ignore
 
 
-def type_name(t: type) -> str:
+def type_name(t: type, keep_main:bool = True) -> str:
     """Complete name, module & specific type name, for the given type.
     Does not supply the module in the returned complete name for built-in types.
 
@@ -10,31 +10,41 @@ def type_name(t: type) -> str:
     in the returned full type name.
     """
     # TODO: Replace function with `typing._type_repr` ???
-    mod = t.__module__
-    if mod == "builtins":
-        return t.__name__
+    def f():
+        mod = t.__module__
+        if mod == "builtins":
+            return t.__name__
 
-    if str(t).startswith("typing.Union"):
+        if str(t).startswith("typing.Union"):
+            try:
+                args = t.__args__  # type: ignore
+                if len(args) == 2 and args[1] == type(None):  # noqa: E721
+                    # an Optional type is equivalent to Union[T, None]
+                    return f"typing.Optional[{type_name(args[0])}]"
+            except Exception:
+                pass
+            return str(t)
+
+        if issubclass(type(t), _GenericAlias):
+            return str(t)
+
+        if isinstance(t, TypeVar):
+            return f"~{t.__name__}"
+
+        full_name = f"{mod}.{t.__name__}"
         try:
-            args = t.__args__  # type: ignore
-            if len(args) == 2 and args[1] == type(None):  # noqa: E721
-                # an Optional type is equivalent to Union[T, None]
-                return f"typing.Optional[{type_name(args[0])}]"
+            # generic parameters ?
+            args = tuple(map(type_name, t.__args__))  # type: ignore
+            a = ", ".join(args)
+            return f"{full_name}[{a}]"
         except Exception:
-            pass
-        return str(t)
+            return full_name
 
-    if issubclass(type(t), _GenericAlias):
-        return str(t)
-
-    full_name = f"{mod}.{t.__name__}"
-    try:
-        # generic parameters ?
-        args = tuple(map(type_name, t.__args__))  # type: ignore
-        a = ", ".join(args)
-        return f"{full_name}[{a}]"
-    except Exception:
-        return full_name
+    if keep_main:
+        return f()
+    else:
+        fn = f()
+        return fn.replace('__main__.', '')
 
 
 def import_by_name(full_name: str, validate: bool = True) -> Any:

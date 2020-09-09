@@ -15,7 +15,7 @@ from typing import (  # type: ignore
 )
 from dataclasses import dataclass, is_dataclass, Field
 
-from core_utils.common import type_name, checkable_type
+from core_utils.common import type_name, checkable_type, split_module_value
 
 __all__ = [
     "serialize",
@@ -129,7 +129,8 @@ def deserialize(
     """
 
     if hasattr(type_value, "__origin__") and is_dataclass(type_value.__origin__):
-        generic_to_concrete = _align_generic_concrete_map(type_value)
+        # generic_to_concrete = _align_generic_concrete_map(type_value)
+        generic_to_concrete = dict(_align_generic_concrete(type_value))
     else:
         generic_to_concrete = dict()
 
@@ -159,7 +160,6 @@ def _align_generic_concrete_map(
             data_type_with_generics
         )
     }
-
     # for generic_type, concrete_type in _align_generic_concrete(data_type_with_generics):
     #     if hasattr(concrete_type, "__origin__"):
     #         concrete_types = _align_generic_concrete_map(concrete_type)
@@ -433,10 +433,35 @@ def _dataclass_field_types(
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
     def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
-        typ = generic_to_concrete.get(str(data_field.type), data_field.type)
+        if hasattr(data_field.type, '__origin__'):
+            tn = type_name(data_field.type, keep_main=False)
+            print(tn+" !")
+            for g in data_field.type.__args__:
+                print("\t"+str(type_name(g, keep_main=False)))
+                tn = tn.replace(str(type_name(g, keep_main=False)),
+                                str(type_name(generic_to_concrete[g], keep_main=False)))
+                print("\t >> "+tn)
+
+            module, name = split_module_value(type_name(data_field.type.__origin__, keep_main=True))
+            print(f"\t{module}, {name}")
+            typ = eval(tn, {name: data_field.type.__origin__})
+        else:
+            typ = data_field.type
         return data_field.name, typ
 
     return list(map(as_name_and_type, dataclass_fields.values()))
+
+
+def _resolve(generic_to_concrete: Mapping[str, Type], data_type: Type) -> Type:
+    if hasattr(data_type, '__origin__'):
+        resolved = type_name(data_type)
+        for generic_type in data_type.__args__:
+            resolved = f"{resolved.replace(generic_type, type_name(generic_to_concrete[generic_type]))}"
+        print(resolved)
+        return eval(resolved)
+
+    else:
+        return data_type
 
 
 def _values_for_type(
