@@ -102,64 +102,6 @@ def serialize(
         return value
 
 
-def _align_generic_concrete_flatten(
-    data_type_with_generics: Type,
-) -> Iterator[Tuple[Type, Union[Type, Iterator[Any]]]]:
-    for generic_type, concrete_type in _align_generic_concrete(data_type_with_generics):
-        yield generic_type, concrete_type
-        if hasattr(concrete_type, "__origin__"):
-            for g, c in _align_generic_concrete_flatten(concrete_type):
-                yield g, c
-
-
-def _align_generic_concrete_map(
-    data_type_with_generics: Type,
-) -> Mapping[str, Union[Type, Mapping[str, Any]]]:
-    return {
-        str(generic_type): _align_generic_concrete_map(concrete_type)
-        if hasattr(concrete_type, "__origin__")
-        else concrete_type
-        for generic_type, concrete_type in _align_generic_concrete(
-            data_type_with_generics
-        )
-    }
-    # for generic_type, concrete_type in _align_generic_concrete(data_type_with_generics):
-    #     if hasattr(concrete_type, "__origin__"):
-    #         concrete_types = _align_generic_concrete_map(concrete_type)
-    #     else:
-    #         concrete_types = concrete_type
-    #     yield generic_type, concrete_types
-
-
-def _align_generic_concrete(
-    data_type_with_generics: Type,
-) -> Iterator[Tuple[Type, Type]]:
-    """Accepts a datacclass type that has filled-in generics. Returns an iterator that yields
-    pairs of (generic type variable name, instantiated type).
-    NOTE: If the supplied type derrives from a Sequence or Mapping, then the generics will be
-          handled appropriately. This is the only exception to non-@dataclass deriving types.
-    """
-    try:
-        origin = data_type_with_generics.__origin__
-        if issubclass(origin, Sequence):
-            generics = [TypeVar("T")]
-            values = data_type_with_generics.__args__
-        elif issubclass(origin, Mapping):
-            generics = [TypeVar("KT"), TypeVar("VT_co")]
-            values = data_type_with_generics.__args__
-        else:
-            # should be a dataclass
-            generics = origin.__parameters__  # type: ignore
-            values = data_type_with_generics.__args__  # type: ignore
-        for g, v in zip(generics, values):
-            yield g, v
-    except AttributeError as e:
-        raise ValueError(
-            f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
-            e,
-        )
-
-
 def deserialize(
     type_value: Type, value: Any, custom: Optional[CustomFormat] = None,
 ) -> Any:
@@ -410,7 +352,41 @@ def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
     return list(map(as_name_and_type, dataclass_fields.values()))
 
 
+def _align_generic_concrete(
+    data_type_with_generics: Type,
+) -> Iterator[Tuple[Type, Type]]:
+    """Yields pairs of (parameterized type name, runtime type value) for the input type.
+
+    Accepts a class type that has parameterized generic types.
+    Returns an iterator that yields pairs of (generic type variable name, instantiated type).
+
+    NOTE: If the supplied type derives from a Sequence or Mapping,
+          then the generics will be handled appropriately.
+    """
+    try:
+        origin = data_type_with_generics.__origin__
+        if issubclass(origin, Sequence):
+            generics = [TypeVar("T")]
+            values = data_type_with_generics.__args__
+        elif issubclass(origin, Mapping):
+            generics = [TypeVar("KT"), TypeVar("VT_co")]
+            values = data_type_with_generics.__args__
+        else:
+            # should be a dataclass
+            generics = origin.__parameters__  # type: ignore
+            values = data_type_with_generics.__args__  # type: ignore
+        for g, v in zip(generics, values):
+            yield g, v
+    except AttributeError as e:
+        raise ValueError(
+            f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
+            e,
+        )
+
+
 def _fill(generic_to_concrete, generic_type):
+    """Fill-in the parameterized types in generic_type using the generic-to-concrete type mapping.
+    """
     tn = type_name(generic_type, keep_main=False)
     for g in generic_type.__parameters__:
         tn = tn.replace(
@@ -421,6 +397,8 @@ def _fill(generic_to_concrete, generic_type):
 
 
 def _exec(origin_type, tn):
+    """Using the module where `origin_type` is defined, instantiate the class defined in the `tn` string.
+    """
     module, _ = split_module_value(type_name(origin_type, keep_main=True))
     m_bits = module.split(".")
     # fmt: off
