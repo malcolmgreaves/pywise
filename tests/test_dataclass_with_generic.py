@@ -201,9 +201,10 @@ def test_generic_wo_holes():
     assert deserialize(SimpleNoGen[Any], serialize(x)) == x
 
     x = NestedNoGen[bytes, type, list](
-        mo=SimpleNoGen[bytes](age=109, name="Mo"),
-        larry=SimpleNoGen[bytes](age=42, name="Larry"),
-        curly=SimpleNoGen[bytes](age=-6, name="Curly"),
+        group_name="The Three Stooges",
+        a=SimpleNoGen[bytes](age=109, name="Mo"),
+        b=SimpleNoGen[bytes](age=42, name="Larry"),
+        c=SimpleNoGen[bytes](age=-6, name="Curly"),
     )
     assert deserialize(NestedNoGen[bytes, type, list], serialize(x)) == x
     assert deserialize(NestedNoGen, serialize(x)) == x

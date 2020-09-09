@@ -34,6 +34,7 @@ class SimpleNoGen(Generic[T]):
 
 @dataclass(frozen=True)
 class NestedNoGen(Generic[T, A, B]):
-    mo: SimpleNoGen[T]
-    larry: SimpleNoGen[A]
-    curly: SimpleNoGen[B]
+    group_name: str
+    a: SimpleNoGen[T]
+    b: SimpleNoGen[A]
+    c: SimpleNoGen[B]
