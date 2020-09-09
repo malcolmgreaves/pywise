@@ -68,28 +68,37 @@ def test_serialize_generic_complex_nested():
             int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
         ],
     ](
-        SimpleGeneric[str]("i am a str"),
+        SimpleGeneric[str](value="i am a str"),
         SimpleGeneric[
             NestedGeneric[
                 int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
             ]
         ](
-            NestedGeneric[
+            value=NestedGeneric[
                 int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
             ](
-                SimpleGeneric[int](999),
-                SimpleGeneric[
+                v1=SimpleGeneric[int](value=999),
+                v2=SimpleGeneric[
                     NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
                 ](
-                    SimpleGeneric[float](-1.0),
-                    SimpleGeneric[NestedGeneric[List[int], Mapping[str, int]]](
-                        NestedGeneric[List[int], Mapping[str, int]](
-                            SimpleGeneric[List[int]]([0, 2, 4, 6, 8, 10]),
-                            SimpleGeneric[Mapping[str, int]](
-                                {"hello": 0, "how": 78892, "are": -12561, "you?": 463},
-                            ),
-                        )
-                    ),
+                    value=NestedGeneric[
+                        float, NestedGeneric[List[int], Mapping[str, int]]
+                    ](
+                        v1=SimpleGeneric[float](value=-1.0),
+                        v2=SimpleGeneric[NestedGeneric[List[int], Mapping[str, int]]](
+                            value=NestedGeneric[List[int], Mapping[str, int]](
+                                v1=SimpleGeneric[List[int]](value=[0, 2, 4, 6, 8, 10],),
+                                v2=SimpleGeneric[Mapping[str, int]](
+                                    value={
+                                        "hello": 0,
+                                        "how": 78892,
+                                        "are": -12561,
+                                        "you?": 463,
+                                    },
+                                ),
+                            )
+                        ),
+                    )
                 ),
             )
         ),
