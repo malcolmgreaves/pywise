@@ -127,7 +127,7 @@ def deserialize(
     if type_value == Any:
         return value
 
-    if isinstance(type_value, TypeVar):
+    if isinstance(type_value, TypeVar):  # type: ignore
         # is a generic type alias: cannot do much with this, so return as-is
         return value
 
@@ -345,7 +345,7 @@ def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
     else:
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
-        def as_name_and_type(data_field):
+        def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
             return data_field.name, data_field.type
 
     return list(map(as_name_and_type, dataclass_fields.values()))
@@ -365,10 +365,10 @@ def _align_generic_concrete(
     try:
         origin = data_type_with_generics.__origin__
         if issubclass(origin, Sequence):
-            generics = [TypeVar("T")]
+            generics = [TypeVar("T")]  # type: ignore
             values = data_type_with_generics.__args__
         elif issubclass(origin, Mapping):
-            generics = [TypeVar("KT"), TypeVar("VT_co")]
+            generics = [TypeVar("KT"), TypeVar("VT_co")]  # type: ignore
             values = data_type_with_generics.__args__
         else:
             # should be a dataclass

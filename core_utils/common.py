@@ -27,7 +27,7 @@ def type_name(t: type, keep_main: bool = True) -> str:
     if issubclass(type(t), _GenericAlias):
         return str(t)
 
-    if isinstance(t, TypeVar):
+    if isinstance(t, TypeVar):  # type: ignore
         return str(t)
 
     full_name = f"{mod}.{t.__name__}"
