@@ -519,10 +519,12 @@ def _values_for_type(
                         actual_value=value,
                     )
 
-        elif _is_optional(field_type):  # type: ignore
-            value = None
         elif field_name in field_to_default:
             value = field_to_default[field_name]
+        # use a default value for an Optional field
+        # before defaulting to the None value
+        elif _is_optional(field_type):  # type: ignore
+            value = None
         else:
             raise MissingRequired(
                 field_name=field_name,
