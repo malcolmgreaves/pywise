@@ -366,7 +366,7 @@ def _dataclass_field_types_defaults(dataclass_type: Type) -> Iterable[Tuple[str,
         dataclass_fields = dataclass_type.__origin__.__dataclass_fields__  # type: ignore
         generic_to_concrete = dict(_align_generic_concrete(dataclass_type))
 
-        def as_name_and_type(data_field: Field) -> Tuple[str, Type, Optional[Any]]:
+        def handle_field(data_field: Field) -> Tuple[str, Type, Optional[Any]]:
             if data_field.type in generic_to_concrete:
                 typ = generic_to_concrete[data_field.type]
             elif hasattr(data_field.type, "__parameters__"):
@@ -379,10 +379,10 @@ def _dataclass_field_types_defaults(dataclass_type: Type) -> Iterable[Tuple[str,
     else:
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
-        def as_name_and_type(data_field: Field) -> Tuple[str, Type, Optional[Any]]:
+        def handle_field(data_field: Field) -> Tuple[str, Type, Optional[Any]]:
             return data_field.name, data_field.type, _default_of(data_field)
 
-    return list(map(as_name_and_type, dataclass_fields.values()))
+    return list(map(handle_field, dataclass_fields.values()))
 
 
 def _default_of(data_field: Field) -> Optional[Any]:
