@@ -213,6 +213,7 @@ def deserialize(
         return type_value[value]  # type: ignore
 
     else:
+
         # Check to see that the expected value is present & has the expected type,
         # iff the expected type is one of JSON's value types.
         if (
@@ -220,8 +221,17 @@ def deserialize(
             or (any(map(lambda t: t == type_value, (int, float, str, bool))))
             and not isinstance(value, checking_type_value)
         ):
+            fail = False
+            # exception: encoded a number into a string; attempt trivial decoding to avoid failure
+            # JSON will encode numbers that are dictionary keys as strings
+            # so that it can make them compliant as objects.
+            if issubclass(checking_type_value, Number) and isinstance(value, str):
+                try:
+                    value = type_value(value.strip())
+                except ValueError:
+                    fail = True
             # numeric check: some ints can be a float
-            if (
+            elif (
                 float == type_value
                 and isinstance(value, int)
                 and int(float(value)) == value
@@ -233,6 +243,9 @@ def deserialize(
             # but in general we just identified a value that
             # didn't deserialize to its expected type
             else:
+                fail = True
+            
+            if fail:
                 raise FieldDeserializeFail(
                     field_name="", expected_type=type_value, actual_value=value
                 )
