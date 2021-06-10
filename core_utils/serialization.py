@@ -244,7 +244,7 @@ def deserialize(
             # didn't deserialize to its expected type
             else:
                 fail = True
-            
+
             if fail:
                 raise FieldDeserializeFail(
                     field_name="", expected_type=type_value, actual_value=value
