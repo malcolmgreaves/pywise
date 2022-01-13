@@ -13,7 +13,7 @@ from typing import (
     Sequence,
     get_origin,
     get_args,
-    Union,
+    Union, cast,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
@@ -130,11 +130,22 @@ def deserialize(
     if type_value == Any:
         return value
 
+
+
     if isinstance(type_value, TypeVar):  # type: ignore
         # is a generic type alias: cannot do much with this, so return as-is
         return value
 
     checking_type_value: Type = checkable_type(type_value)
+
+
+    def is_a(XX):
+        try:
+            return issubclass(checking_type_value, XX)
+        except Exception as err:
+            import ipdb
+            ipdb.set_trace()
+            raise err
 
     if is_namedtuple(checking_type_value):
         return _namedtuple_from_dict(type_value, value, custom)
@@ -148,32 +159,35 @@ def deserialize(
         if value is None:
             return None
         else:
-            return deserialize(type_value.__args__[0], value, custom)
+            inner_type = cast(type, get_args(type_value)[0])
+            return deserialize(inner_type, value, custom)
 
     # NOTE: Need to have type_value instead of checking_type_value here !
-    # elif _is_union(type_value):
-    elif get_origin(type_value) is Union:
-        # for possible_type in type_value.__args__:
-        for possible_type in get_args(type_value):
+    elif _is_union(type_value):
+        for _p in get_args(type_value):
+            possible_type = cast(type, _p)
             # try to deserialize the value using one of its
             # possible types
             try:
                 return deserialize(possible_type, value, custom)
-            except Exception:
+            except Exception as e:
                 pass
         raise FieldDeserializeFail(
             field_name="", expected_type=type_value, actual_value=value
         )
 
-    elif issubclass(checking_type_value, Mapping):
-        # k_type, v_type = type_value.__args__  # type: ignore
-        k_type, v_type = get_args(type_value)
+    elif is_a(Mapping):
+    # elif issubclass(checking_type_value, Mapping):
+        _args = get_args(type_value)
+        k_type = cast(type, _args[0])
+        v_type = cast(type, _args[1])
         return {
             deserialize(k_type, k, custom): deserialize(v_type, v, custom)
             for k, v in value.items()
         }
 
-    elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
+    elif is_a(Tuple) and checking_type_value != str:
+    # elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
         # tuple_type_args = type_value.__args__
         tuple_type_args = get_args(type_value)
         converted = map(
@@ -184,16 +198,17 @@ def deserialize(
         )
         return tuple(converted)
 
-    elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
-        # (i_type,) = type_value.__args__  # type: ignore
-        i_type = get_args(type_value)
+    elif is_a(Iterable) and checking_type_value != str:
+    # elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
+        i_type = cast(type, get_args(type_value)[0])
         converted = map(lambda x: deserialize(i_type, x, custom), value)
         if issubclass(checking_type_value, Set):
             return set(converted)
         else:
             return list(converted)
 
-    elif issubclass(checking_type_value, Enum):
+    # elif issubclass(checking_type_value, Enum):
+    elif is_a(Enum):
         # instead of serializing the enum's _value_, we serialize it's _name_
         # so we can obtain the actual _value_ by looking in the enum type's __dict__
         # attribute with our supplied name
@@ -373,17 +388,17 @@ def _align_generic_concrete(
           then the generics will be handled appropriately.
     """
     try:
-        origin = data_type_with_generics.__origin__
+        origin = data_type_with_generics.__origin__ # type: ignore
         if issubclass(origin, Sequence):
             generics = [TypeVar("T")]  # type: ignore
-            values = data_type_with_generics.__args__
+            values = get_args(data_type_with_generics)
         elif issubclass(origin, Mapping):
             generics = [TypeVar("KT"), TypeVar("VT_co")]  # type: ignore
-            values = data_type_with_generics.__args__
+            values = get_args(data_type_with_generics)
         else:
             # should be a dataclass
             generics = origin.__parameters__  # type: ignore
-            values = data_type_with_generics.__args__  # type: ignore
+            values = get_args(data_type_with_generics)  # type: ignore
         for g, v in zip(generics, values):
             yield g, v
     except AttributeError as e:
@@ -555,7 +570,7 @@ def _is_optional(t: type) -> bool:
     """Evaluates to true iff the input is a type that is equivalent to an `Optional`.
     """
     try:
-        type_args = t.__args__  # type: ignore
+        type_args = get_args(t)
         only_one_none_type = (
             len(list(filter(lambda x: x == type(None), type_args))) == 1  # type: ignore
         )
@@ -567,12 +582,13 @@ def _is_optional(t: type) -> bool:
 def _is_union(t: type) -> bool:
     """Evaluates to true iff the input is a union (not an Optional) type.
     """
-    try:
-        type_args = t.__args__  # type: ignore
-        return (
-            not _is_optional(t)
-            and all(map(lambda x: isinstance(x, type), type_args))
-            and type_name(t).startswith("typing.Union")
-        )
-    except Exception:
-        return False
+    return get_origin(t) is Union and not _is_optional(t)
+    # try:
+    #     type_args = get_args(t)
+    #     return (
+    #         not _is_optional(t)
+    #         and all(map(lambda x: isinstance(x, type), type_args))
+    #         and type_name(t).startswith("typing.Union")
+    #     )
+    # except Exception:
+    #     return False

@@ -1,5 +1,5 @@
 from importlib import import_module
-from typing import _GenericAlias, Any, Tuple, Optional, Type, TypeVar  # type: ignore
+from typing import _GenericAlias, Any, Tuple, Optional, Type, TypeVar, get_args  # type: ignore
 
 
 def type_name(t: type, keep_main: bool = True) -> str:
@@ -19,7 +19,7 @@ def type_name(t: type, keep_main: bool = True) -> str:
 
     if str(t).startswith("typing.Union"):
         try:
-            args = t.__args__  # type: ignore
+            args = get_args(t)
             if len(args) == 2 and args[1] == type(None):  # noqa: E721
                 # an Optional type is equivalent to Union[T, None]
                 return f"typing.Optional[{type_name(args[0])}]"
@@ -36,7 +36,7 @@ def type_name(t: type, keep_main: bool = True) -> str:
     full_name = f"{mod}.{t.__name__}"
     try:
         # generic parameters ?
-        args = tuple(map(type_name, t.__args__))  # type: ignore
+        args = tuple(map(type_name, get_args(t)))  # type: ignore
         a = ", ".join(args)
         complete_type_name = f"{full_name}[{a}]"
     except Exception:
