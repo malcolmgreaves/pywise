@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     get_origin,
     get_args,
+    Union,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
