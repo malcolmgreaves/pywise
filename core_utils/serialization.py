@@ -11,6 +11,8 @@ from typing import (
     Optional,
     Iterator,
     Sequence,
+    get_origin,
+    get_args,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
@@ -148,8 +150,10 @@ def deserialize(
             return deserialize(type_value.__args__[0], value, custom)
 
     # NOTE: Need to have type_value instead of checking_type_value here !
-    elif _is_union(type_value):
-        for possible_type in type_value.__args__:
+    # elif _is_union(type_value):
+    elif get_origin(type_value) is Union:
+        # for possible_type in type_value.__args__:
+        for possible_type in get_args(type_value):
             # try to deserialize the value using one of its
             # possible types
             try:
@@ -161,14 +165,16 @@ def deserialize(
         )
 
     elif issubclass(checking_type_value, Mapping):
-        k_type, v_type = type_value.__args__  # type: ignore
+        # k_type, v_type = type_value.__args__  # type: ignore
+        k_type, v_type = get_args(type_value)
         return {
             deserialize(k_type, k, custom): deserialize(v_type, v, custom)
             for k, v in value.items()
         }
 
     elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
-        tuple_type_args = type_value.__args__
+        # tuple_type_args = type_value.__args__
+        tuple_type_args = get_args(type_value)
         converted = map(
             lambda type_val_pair: deserialize(
                 type_val_pair[0], type_val_pair[1], custom
@@ -178,7 +184,8 @@ def deserialize(
         return tuple(converted)
 
     elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
-        (i_type,) = type_value.__args__  # type: ignore
+        # (i_type,) = type_value.__args__  # type: ignore
+        i_type = get_args(type_value)
         converted = map(lambda x: deserialize(i_type, x, custom), value)
         if issubclass(checking_type_value, Set):
             return set(converted)
