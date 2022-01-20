@@ -124,7 +124,6 @@ def deserialize(
     NOTE: If using :param:`custom` for generic types, you *must* have unique instances for each possible
           type parametrization.
     """
-
     if custom is not None and type_value in custom:
         return custom[type_value](value)
 
@@ -156,12 +155,20 @@ def deserialize(
     elif _is_union(type_value):
         for _p in get_args(type_value):
             possible_type = cast(type, _p)
-            # try to deserialize the value using one of its
-            # possible types
+            # determine if the value could be deserialized into one
+            # of the union's listed types
+            # try:
+            #     # for "concrete" types
+            #     ok_to_deserialize_into: bool = isinstance(value, possible_type)
+            # except Exception:
+            #     # for generics, e.g. collection types
+            #     ok_to_deserialize_into = isinstance(value, get_origin(possible_type))
+            # if ok_to_deserialize_into:
+            #     return deserialize(possible_type, value, custom)
             try:
                 return deserialize(possible_type, value, custom)
-            except Exception as e:
-                pass
+            except Exception:
+                continue
         raise FieldDeserializeFail(
             field_name="", expected_type=type_value, actual_value=value
         )
@@ -186,6 +193,9 @@ def deserialize(
         return tuple(converted)
 
     elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
+        # special case: fail-fast on trying to treat a dict as list-like
+        if isinstance(value, dict):
+            raise FieldDeserializeFail("", type_value, value)
         i_type = cast(type, get_args(type_value)[0])
         converted = map(lambda x: deserialize(i_type, x, custom), value)
         if issubclass(checking_type_value, Set):
