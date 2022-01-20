@@ -13,7 +13,8 @@ from typing import (
     Sequence,
     get_origin,
     get_args,
-    Union, cast,
+    Union,
+    cast,
 )
 from dataclasses import dataclass, is_dataclass, Field
 
@@ -130,22 +131,11 @@ def deserialize(
     if type_value == Any:
         return value
 
-
-
     if isinstance(type_value, TypeVar):  # type: ignore
         # is a generic type alias: cannot do much with this, so return as-is
         return value
 
     checking_type_value: Type = checkable_type(type_value)
-
-
-    def is_a(XX):
-        try:
-            return issubclass(checking_type_value, XX)
-        except Exception as err:
-            import ipdb
-            ipdb.set_trace()
-            raise err
 
     if is_namedtuple(checking_type_value):
         return _namedtuple_from_dict(type_value, value, custom)
@@ -176,8 +166,7 @@ def deserialize(
             field_name="", expected_type=type_value, actual_value=value
         )
 
-    elif is_a(Mapping):
-    # elif issubclass(checking_type_value, Mapping):
+    elif issubclass(checking_type_value, Mapping):
         _args = get_args(type_value)
         k_type = cast(type, _args[0])
         v_type = cast(type, _args[1])
@@ -186,9 +175,7 @@ def deserialize(
             for k, v in value.items()
         }
 
-    elif is_a(Tuple) and checking_type_value != str:
-    # elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
-        # tuple_type_args = type_value.__args__
+    elif issubclass(checking_type_value, Tuple) and checking_type_value != str:
         tuple_type_args = get_args(type_value)
         converted = map(
             lambda type_val_pair: deserialize(
@@ -198,8 +185,7 @@ def deserialize(
         )
         return tuple(converted)
 
-    elif is_a(Iterable) and checking_type_value != str:
-    # elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
+    elif issubclass(checking_type_value, Iterable) and checking_type_value != str:
         i_type = cast(type, get_args(type_value)[0])
         converted = map(lambda x: deserialize(i_type, x, custom), value)
         if issubclass(checking_type_value, Set):
@@ -207,8 +193,7 @@ def deserialize(
         else:
             return list(converted)
 
-    # elif issubclass(checking_type_value, Enum):
-    elif is_a(Enum):
+    elif issubclass(checking_type_value, Enum):
         # instead of serializing the enum's _value_, we serialize it's _name_
         # so we can obtain the actual _value_ by looking in the enum type's __dict__
         # attribute with our supplied name
@@ -388,7 +373,7 @@ def _align_generic_concrete(
           then the generics will be handled appropriately.
     """
     try:
-        origin = data_type_with_generics.__origin__ # type: ignore
+        origin = data_type_with_generics.__origin__  # type: ignore
         if issubclass(origin, Sequence):
             generics = [TypeVar("T")]  # type: ignore
             values = get_args(data_type_with_generics)
@@ -583,12 +568,3 @@ def _is_union(t: type) -> bool:
     """Evaluates to true iff the input is a union (not an Optional) type.
     """
     return get_origin(t) is Union and not _is_optional(t)
-    # try:
-    #     type_args = get_args(t)
-    #     return (
-    #         not _is_optional(t)
-    #         and all(map(lambda x: isinstance(x, type), type_args))
-    #         and type_name(t).startswith("typing.Union")
-    #     )
-    # except Exception:
-    #     return False
