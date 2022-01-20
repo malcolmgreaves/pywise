@@ -182,7 +182,7 @@ def deserialize(
             for k, v in value.items()
         }
 
-    elif issubclass(checking_type_value, Tuple) and checking_type_value != str:
+    elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
         tuple_type_args = get_args(type_value)
         converted = map(
             lambda type_val_pair: deserialize(
