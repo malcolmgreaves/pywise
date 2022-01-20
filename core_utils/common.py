@@ -37,8 +37,11 @@ def type_name(t: type, keep_main: bool = True) -> str:
     try:
         # generic parameters ?
         args = tuple(map(type_name, get_args(t)))  # type: ignore
-        a = ", ".join(args)
-        complete_type_name = f"{full_name}[{a}]"
+        if len(args) > 0:
+            a = ", ".join(args)
+            complete_type_name: str = f"{full_name}[{a}]"
+        else:
+            complete_type_name = full_name
     except Exception:
         complete_type_name = full_name
 
