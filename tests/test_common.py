@@ -67,7 +67,6 @@ def test_type_name():
         ),
     ]
     for inp, expected in tests:
-        print(f"{typing._type_repr(inp)=} | {type_name(inp)=}")
         actual = type_name(inp)
         assert actual == expected, f"Failed for {inp}"
 
