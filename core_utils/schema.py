@@ -1,4 +1,4 @@
-from typing import Type, Iterable, Union, Any, Mapping, Sequence
+from typing import Type, Iterable, Union, Any, Mapping, Sequence, get_args, cast
 from dataclasses import is_dataclass
 
 from core_utils.common import type_name, checkable_type
@@ -51,22 +51,25 @@ def _dict_type(t: type):
             checkable_t: Type = checkable_type(t)
             if issubclass(checkable_t, Mapping):
                 try:
-                    key_t: type = t.__args__[0]  # type: ignore
-                    val_t: type = t.__args__[1]  # type: ignore
+                    _args = get_args(t)
+                    key_t: type = cast(type, _args[0])
+                    val_t: type = cast(type, _args[1])
                 except Exception as e:
                     raise TypeError(
                         f"Could not extract key & value types from dict type: '{t}'"
                     ) from e
-                k = _dict_type(key_t)
-                v = _dict_type(val_t)
-                return {k: v}
+                else:
+                    k = _dict_type(key_t)
+                    v = _dict_type(val_t)
+                    return {k: v}
 
             elif issubclass(checkable_t, Iterable) and t != str:
                 try:
-                    inner_t: type = t.__args__[0]  # type: ignore
+                    inner_t: type = cast(type, get_args(t)[0])
                 except Exception as e:
                     raise TypeError(
                         f"Could not extract inner type from iterable type: '{t}'"
                     ) from e
-                return [_dict_type(inner_t)]
+                else:
+                    return [_dict_type(inner_t)]
         return tn
