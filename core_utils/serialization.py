@@ -1,5 +1,6 @@
 import traceback
 from enum import Enum
+from numbers import Number
 from typing import (
     Any,
     Iterable,
