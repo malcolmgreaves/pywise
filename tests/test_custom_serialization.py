@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import Tuple, NamedTuple, Mapping, Sequence
+from typing import Tuple, NamedTuple, Mapping, Sequence, Dict, List
 
 import numpy as np
 import torch
@@ -154,7 +154,7 @@ def test_custom_serialize_iterable(
 def test_nested_array_dict_int_keys(custom_serialize, custom_deserialize):
     N = 4
     M = 3
-    
+
     def check(*, actual, expected):
         assert isinstance(actual, type(expected))
         assert len(actual) == N
@@ -164,9 +164,8 @@ def test_nested_array_dict_int_keys(custom_serialize, custom_deserialize):
                 assert isinstance(i, int)
                 _check_array_like(actual=arr, expected=np.ones(i))
 
-  m: List[List[Dict[int, np.ndarray]]] = [[
-      [{i:np.ones(i) for i in range(M)]
-      for _ in range(N)
-  ]]
+    m: List[List[Dict[int, np.ndarray]]] = [
+        [{i: np.ones(i)} for i in range(M)] for _ in range(N)
+    ]
 
-  _roundtrip(m, custom_serialize, custom_deserialize, check)
+    _roundtrip(m, custom_serialize, custom_deserialize, check)
