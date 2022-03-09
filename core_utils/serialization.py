@@ -15,6 +15,8 @@ from typing import (
     get_args,
     Union,
     cast,
+    List,
+    Dict,
 )
 from dataclasses import dataclass, is_dataclass, Field, _MISSING_TYPE
 
@@ -326,7 +328,9 @@ def _dataclass_from_dict(
     )
     if is_dataclass(dataclass_type) or is_generic_dataclass:
         try:
-            all_field_type_default = list(_dataclass_field_types_defaults(dataclass_type))
+            all_field_type_default = list(
+                _dataclass_field_types_defaults(dataclass_type)
+            )
         except AttributeError as ae:
             raise TypeError(
                 "Did you pass-in a type that is decorated with @dataclass? "
@@ -359,7 +363,9 @@ def _dataclass_from_dict(
         )
 
 
-def _dataclass_field_types_defaults(dataclass_type: Type) -> Iterable[Tuple[str, Type, Optional[Any]]]:
+def _dataclass_field_types_defaults(
+    dataclass_type: Type,
+) -> Iterable[Tuple[str, Type, Optional[Any]]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
     if hasattr(dataclass_type, "__origin__"):
@@ -386,10 +392,7 @@ def _dataclass_field_types_defaults(dataclass_type: Type) -> Iterable[Tuple[str,
 
 
 def _default_of(data_field: Field) -> Optional[Any]:
-    return (
-        None if isinstance(data_field.default, _MISSING_TYPE)
-        else data_field.default
-    )
+    return None if isinstance(data_field.default, _MISSING_TYPE) else data_field.default
 
 
 def _align_generic_concrete(
