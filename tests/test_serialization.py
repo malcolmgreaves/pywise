@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 import io
 import json
 from collections import namedtuple
@@ -520,11 +523,13 @@ def test_serialize_has_defaults_nt():
     assert serialize(deserialize(HasDefaultsNT, serialize(HasDefaultsNT()))) == s
 
 
+
+
 @dataclass(frozen=True)
 class NestedDefaultsMixed:
     dc_value: HasDefaultsDC = HasDefaultsDC()
     nt_name: HasDefaultsNT = HasDefaultsNT()
-    recursive: Optional["NestedDefaultsMixed"] = None
+    recursive: Optional[NestedDefaultsMixed] = None
 
 
 def test_serialized_nested_defaults_basic():
