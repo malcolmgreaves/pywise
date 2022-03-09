@@ -315,7 +315,7 @@ def _namedtuple_field_types(
 def _namedtuple_field_defaults(
     namedtuple_type: Type[SomeNamedTuple],
 ) -> Mapping[str, Any]:
-    return namedtuple_type._field_defaults
+    return namedtuple_type._field_defaults  # type: ignore
 
 
 def _dataclass_from_dict(
