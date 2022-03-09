@@ -317,8 +317,9 @@ def _namedtuple_field_defaults(
     namedtuple_type: Type[SomeNamedTuple],
 ) -> Mapping[str, Any]:
     return {
-        k: serialize(v) for k, v in namedtuple_type._field_defaults.items()
-    }  # type: ignore
+        k: serialize(v, no_none_values=False)
+        for k, v in namedtuple_type._field_defaults.items()  # type: ignore
+    }
 
 
 def _dataclass_from_dict(
@@ -398,7 +399,7 @@ def _default_of(data_field: Field) -> Optional[Any]:
     return (
         None
         if isinstance(data_field.default, _MISSING_TYPE)
-        else serialize(data_field.default)
+        else serialize(data_field.default, no_none_values=False)
     )
 
 
@@ -547,8 +548,6 @@ def _values_for_type(
                 yield deserialize(field_type, value, custom)  # type: ignore
             else:
                 yield None
-        except (FieldDeserializeFail, MissingRequired):
-            raise
         except Exception as e:
             print(
                 "ERROR deserializing field:'"
@@ -556,9 +555,12 @@ def _values_for_type(
                 + "'\n"
                 + traceback.format_exc()
             )
-            raise FieldDeserializeFail(
-                field_name=field_name, expected_type=field_type, actual_value=value
-            ) from e
+            if isinstance(e, (FieldDeserializeFail, MissingRequired)):
+                raise e
+            else:
+                raise FieldDeserializeFail(
+                    field_name=field_name, expected_type=field_type, actual_value=value
+                ) from e
 
 
 @dataclass(frozen=True)

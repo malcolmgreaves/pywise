@@ -563,4 +563,5 @@ def test_serialized_nested_defaults_advanced():
         ),
     )
 
-    assert nested == deserialize(NestedDefaultsMixed, serialize(nested))
+    s = serialize(nested)
+    assert nested == deserialize(NestedDefaultsMixed, s)
