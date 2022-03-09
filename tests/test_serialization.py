@@ -533,14 +533,17 @@ def test_serialized_nested_defaults_basic():
     assert x.nt_name.name == "<noname>"
     assert x.recursive is None
 
-    s = serialize(x)
+    s = serialize(x, no_none_values=False)
     assert s == {
         "dc_value": {"value": 10},
         "nt_name": {"name": "<noname>"},
         "recursive": None,
     }
     assert (
-        serialize(deserialize(NestedDefaultsMixed, serialize(NestedDefaultsMixed())))
+        serialize(
+            deserialize(NestedDefaultsMixed, serialize(NestedDefaultsMixed())),
+            no_none_values=False,
+        )
         == s
     )
 

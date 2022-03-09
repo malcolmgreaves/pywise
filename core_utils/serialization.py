@@ -316,7 +316,9 @@ def _namedtuple_field_types(
 def _namedtuple_field_defaults(
     namedtuple_type: Type[SomeNamedTuple],
 ) -> Mapping[str, Any]:
-    return namedtuple_type._field_defaults  # type: ignore
+    return {
+        k: serialize(v) for k, v in namedtuple_type._field_defaults.items()
+    }  # type: ignore
 
 
 def _dataclass_from_dict(
@@ -329,7 +331,7 @@ def _dataclass_from_dict(
     )
     if is_dataclass(dataclass_type) or is_generic_dataclass:
         try:
-            all_field_type_default = list(
+            all_field_type_default: List[Tuple[str, Type, Optional[Any]]] = list(
                 _dataclass_field_types_defaults(dataclass_type)
             )
         except AttributeError as ae:
@@ -343,8 +345,8 @@ def _dataclass_from_dict(
 
         field_and_types: List[Tuple[str, Type]] = []
         field_defaults: Dict[str, Any] = dict()
-        for field, type, maybe_default in all_field_type_default:
-            field_and_types.append((field, type))
+        for field, _type, maybe_default in all_field_type_default:
+            field_and_types.append((field, _type))
             if maybe_default is not None:
                 field_defaults[field] = maybe_default
 
@@ -393,7 +395,11 @@ def _dataclass_field_types_defaults(
 
 
 def _default_of(data_field: Field) -> Optional[Any]:
-    return None if isinstance(data_field.default, _MISSING_TYPE) else data_field.default
+    return (
+        None
+        if isinstance(data_field.default, _MISSING_TYPE)
+        else serialize(data_field.default)
+    )
 
 
 def _align_generic_concrete(
