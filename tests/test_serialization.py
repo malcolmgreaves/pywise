@@ -493,3 +493,71 @@ def test_serialize_none_special_cases_mapping():
     assert len(s) == 1
     assert deserialize(Mapping[str, Optional[int]], s) == m_empty
     assert deserialize(Mapping[str, Optional[int]], serialize(m_empty)) == {}
+
+
+@dataclass(frozen=True)
+class HasDefaultsDC:
+    value: int = 10
+
+
+class HasDefaultsNT(NamedTuple):
+    name: str = "<noname>"
+
+
+def test_serialize_has_defaults_dc():
+    x: HasDefaultsDC = deserialize(HasDefaultsDC, {})
+    assert x.value == 10
+    s = serialize(x)
+    assert s == {"value": 10}
+    assert serialize(deserialize(HasDefaultsDC, serialize(HasDefaultsDC()))) == s
+
+
+def test_serialize_has_defaults_nt():
+    x: HasDefaultsNT = deserialize(HasDefaultsNT, {})
+    assert x.name == "<noname>"
+    s = serialize(x)
+    assert s == {"name": "<noname>"}
+    assert serialize(deserialize(HasDefaultsNT, serialize(HasDefaultsNT()))) == s
+
+
+@dataclass(frozen=True)
+class NestedDefaultsMixed:
+    dc_value: HasDefaultsDC = HasDefaultsDC()
+    nt_name: HasDefaultsNT = HasDefaultsNT()
+    recursive: Optional["NestedDefaultsMixed"] = None
+
+
+def test_serialized_nested_defaults_basic():
+    x: NestedDefaultsMixed = deserialize(NestedDefaultsMixed, {})
+    assert x.dc_value.value == 10
+    assert x.nt_name.name == "<noname>"
+    assert x.recursive is None
+
+    s = serialize(x)
+    assert s == {
+        "dc_value": {"value": 10},
+        "nt_name": {"name": "<noname>"},
+        "recursive": None,
+    }
+    assert (
+        serialize(deserialize(NestedDefaultsMixed, serialize(NestedDefaultsMixed())))
+        == s
+    )
+
+
+def test_serialized_nested_defaults_advanced():
+    nested = NestedDefaultsMixed(
+        dc_value=HasDefaultsDC(9999),
+        nt_name=HasDefaultsNT("powerlevel"),
+        recursive=NestedDefaultsMixed(
+            nt_name=HasDefaultsNT("hello world!"),
+            recursive=NestedDefaultsMixed(
+                dc_value=HasDefaultsDC(-50),
+                recursive=NestedDefaultsMixed(
+                    nt_name=HasDefaultsNT("goodbye universe?"),
+                ),
+            ),
+        ),
+    )
+
+    assert nested == deserialize(NestedDefaultsMixed, serialize(nested))
