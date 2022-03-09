@@ -1,3 +1,4 @@
+import traceback
 from enum import Enum
 from typing import (
     Any,
@@ -543,6 +544,12 @@ def _values_for_type(
         except (FieldDeserializeFail, MissingRequired):
             raise
         except Exception as e:
+            print(
+                "ERROR deserializing field:'"
+                + str(field_name)
+                + "'\n"
+                + traceback.format_exc()
+            )
             raise FieldDeserializeFail(
                 field_name=field_name, expected_type=field_type, actual_value=value
             ) from e
