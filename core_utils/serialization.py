@@ -1,3 +1,4 @@
+import traceback
 from enum import Enum
 from typing import (
     Any,
@@ -15,8 +16,10 @@ from typing import (
     get_args,
     Union,
     cast,
+    List,
+    Dict,
 )
-from dataclasses import dataclass, is_dataclass, Field
+from dataclasses import dataclass, is_dataclass, Field, _MISSING_TYPE
 
 from core_utils.common import type_name, checkable_type, split_module_value
 
@@ -281,6 +284,7 @@ def _namedtuple_from_dict(
                     _namedtuple_field_types(namedtuple_type),
                     data,
                     namedtuple_type,
+                    _namedtuple_field_defaults(namedtuple_type),
                     custom,
                 )
             )
@@ -309,6 +313,15 @@ def _namedtuple_field_types(
     return namedtuple_type._field_types.items()  # type: ignore
 
 
+def _namedtuple_field_defaults(
+    namedtuple_type: Type[SomeNamedTuple],
+) -> Mapping[str, Any]:
+    return {
+        k: serialize(v, no_none_values=False)
+        for k, v in namedtuple_type._field_defaults.items()  # type: ignore
+    }
+
+
 def _dataclass_from_dict(
     dataclass_type: Type, data: dict, custom: Optional[CustomFormat],
 ) -> Any:
@@ -319,7 +332,9 @@ def _dataclass_from_dict(
     )
     if is_dataclass(dataclass_type) or is_generic_dataclass:
         try:
-            field_and_types = list(_dataclass_field_types(dataclass_type))
+            all_field_type_default: List[Tuple[str, Type, Optional[Any]]] = list(
+                _dataclass_field_types_defaults(dataclass_type)
+            )
         except AttributeError as ae:
             raise TypeError(
                 "Did you pass-in a type that is decorated with @dataclass? "
@@ -329,8 +344,15 @@ def _dataclass_from_dict(
                 ae,
             )
 
+        field_and_types: List[Tuple[str, Type]] = []
+        field_defaults: Dict[str, Any] = dict()
+        for field, _type, maybe_default in all_field_type_default:
+            field_and_types.append((field, _type))
+            if maybe_default is not None:
+                field_defaults[field] = maybe_default
+
         deserialized_fields = _values_for_type(
-            field_and_types, data, dataclass_type, custom
+            field_and_types, data, dataclass_type, field_defaults, custom
         )
         deserialized_fields = list(deserialized_fields)
         field_values = dict(
@@ -345,14 +367,16 @@ def _dataclass_from_dict(
         )
 
 
-def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
+def _dataclass_field_types_defaults(
+    dataclass_type: Type,
+) -> Iterable[Tuple[str, Type, Optional[Any]]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
     if hasattr(dataclass_type, "__origin__"):
         dataclass_fields = dataclass_type.__origin__.__dataclass_fields__  # type: ignore
         generic_to_concrete = dict(_align_generic_concrete(dataclass_type))
 
-        def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
+        def handle_field(data_field: Field) -> Tuple[str, Type, Optional[Any]]:
             if data_field.type in generic_to_concrete:
                 typ = generic_to_concrete[data_field.type]
             elif hasattr(data_field.type, "__parameters__"):
@@ -360,15 +384,23 @@ def _dataclass_field_types(dataclass_type: Type) -> Iterable[Tuple[str, Type]]:
                 typ = _exec(data_field.type.__origin__, tn)
             else:
                 typ = data_field.type
-            return data_field.name, typ
+            return data_field.name, typ, _default_of(data_field)
 
     else:
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
-        def as_name_and_type(data_field: Field) -> Tuple[str, Type]:
-            return data_field.name, data_field.type
+        def handle_field(data_field: Field) -> Tuple[str, Type, Optional[Any]]:
+            return data_field.name, data_field.type, _default_of(data_field)
 
-    return list(map(as_name_and_type, dataclass_fields.values()))
+    return list(map(handle_field, dataclass_fields.values()))
+
+
+def _default_of(data_field: Field) -> Optional[Any]:
+    return (
+        None
+        if isinstance(data_field.default, _MISSING_TYPE)
+        else serialize(data_field.default, no_none_values=False)
+    )
 
 
 def _align_generic_concrete(
@@ -453,8 +485,9 @@ def _exec(origin_type, tn):
 
 def _values_for_type(
     field_name_expected_type: Iterable[Tuple[str, Type]],
-    data: dict,
+    data: Mapping[str, Any],
     type_data: Type,
+    field_to_default: Mapping[str, Any],
     custom: Optional[CustomFormat],
 ) -> Iterable:
     """Constructs an instance of :param:`type_data` using the data in :param:`data`, with
@@ -497,6 +530,10 @@ def _values_for_type(
                         actual_value=value,
                     )
 
+        elif field_name in field_to_default:
+            value = field_to_default[field_name]
+        # use a default value for an Optional field
+        # before defaulting to the None value
         elif _is_optional(field_type):  # type: ignore
             value = None
         else:
@@ -511,12 +548,19 @@ def _values_for_type(
                 yield deserialize(field_type, value, custom)  # type: ignore
             else:
                 yield None
-        except (FieldDeserializeFail, MissingRequired):
-            raise
         except Exception as e:
-            raise FieldDeserializeFail(
-                field_name=field_name, expected_type=field_type, actual_value=value
-            ) from e
+            print(
+                "ERROR deserializing field:'"
+                + str(field_name)
+                + "'\n"
+                + traceback.format_exc()
+            )
+            if isinstance(e, (FieldDeserializeFail, MissingRequired)):
+                raise e
+            else:
+                raise FieldDeserializeFail(
+                    field_name=field_name, expected_type=field_type, actual_value=value
+                ) from e
 
 
 @dataclass(frozen=True)

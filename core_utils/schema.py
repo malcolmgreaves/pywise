@@ -1,11 +1,22 @@
-from typing import Type, Iterable, Union, Any, Mapping, Sequence, get_args, cast
+from typing import (
+    Type,
+    Iterable,
+    Union,
+    Any,
+    Mapping,
+    Sequence,
+    get_args,
+    cast,
+    Callable,
+    Tuple,
+)
 from dataclasses import is_dataclass
 
 from core_utils.common import type_name, checkable_type
 from core_utils.serialization import (
     is_typed_namedtuple,
     _namedtuple_field_types,
-    _dataclass_field_types,
+    _dataclass_field_types_defaults,
 )
 
 
@@ -37,12 +48,19 @@ def dict_type_representation(nt_or_dc_type: Type) -> Discover:
 
 def _dict_type(t: type):
     if is_typed_namedtuple(t) or is_dataclass(t):
-        field_types_of = (
-            _namedtuple_field_types
-            if is_typed_namedtuple(t)
-            else _dataclass_field_types
-        )
-        accum = {name: _dict_type(field_type) for name, field_type in field_types_of(t)}
+        if is_typed_namedtuple(t):
+            field_types_of: Callable[
+                [], Iterable[Tuple[str, type]]
+            ] = lambda: _namedtuple_field_types(
+                t  # type: ignore
+            )
+        else:
+
+            def field_types_of() -> Iterable[Tuple[str, type]]:
+                for a, b, _ in _dataclass_field_types_defaults(t):
+                    yield a, b
+
+        accum = {name: _dict_type(field_type) for name, field_type in field_types_of()}
         return accum
 
     else:
