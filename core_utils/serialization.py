@@ -284,7 +284,7 @@ def _namedtuple_from_dict(
 
         except AttributeError as ae:  # pragma: no cover
             raise TypeError(
-                "Did you pass in a valid NamedTuple type? It needs ._field_types "
+                "Did you pass in a valid NamedTuple type? It needs .__annotations__ "
                 "to return the list of valid field names & expected types! "
                 "And ._make to accept the initialization values. Type "
                 f"'{type_name(namedtuple_type)}' does not work. ",
@@ -301,7 +301,7 @@ def _namedtuple_field_types(
     namedtuple_type: Type[SomeNamedTuple],
 ) -> Iterable[Tuple[str, Type]]:
     """Obtain the fields & expected types of a NamedTuple-deriving type."""
-    return namedtuple_type._field_types.items()  # type: ignore
+    return namedtuple_type.__annotations__.items()  # type: ignore
 
 
 def _namedtuple_field_defaults(
