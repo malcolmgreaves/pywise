@@ -63,9 +63,7 @@ def _roundtrip(a, cs, cd, check):
 
 
 def _check_array_like(*, actual, expected):
-    assert isinstance(
-        actual, type(expected)
-    ), f"Expecting {type(expected)} recieved {type(actual)}"
+    assert isinstance(actual, type(expected)), f"Expecting {type(expected)} recieved {type(actual)}"
     assert (expected == actual).all()  # type: ignore
 
 
@@ -117,17 +115,13 @@ def test_custom_serialize_map(custom_serialize, custom_deserialize, multi_dim_sh
     def check(*, actual, expected):
         assert isinstance(actual, type(expected))
         assert "an_id" in actual.field
-        _check_array_like(
-            actual=actual.field["an_id"], expected=expected.field["an_id"]
-        )
+        _check_array_like(actual=actual.field["an_id"], expected=expected.field["an_id"])
 
     _roundtrip(mnt, custom_serialize, custom_deserialize, check)
     _roundtrip(mdc, custom_serialize, custom_deserialize, check)
 
 
-def test_custom_serialize_iterable(
-    custom_serialize, custom_deserialize, multi_dim_shape
-):
+def test_custom_serialize_iterable(custom_serialize, custom_deserialize, multi_dim_shape):
     class MNT(NamedTuple):
         field: Sequence[np.ndarray]
 
@@ -135,12 +129,8 @@ def test_custom_serialize_iterable(
     class MDC:
         field: Sequence[np.ndarray]
 
-    mnt = MNT(
-        field=[np.random.random(multi_dim_shape), np.random.random(multi_dim_shape)]
-    )
-    mdc = MDC(
-        field=[np.random.random(multi_dim_shape), np.random.random(multi_dim_shape)]
-    )
+    mnt = MNT(field=[np.random.random(multi_dim_shape), np.random.random(multi_dim_shape)])
+    mdc = MDC(field=[np.random.random(multi_dim_shape), np.random.random(multi_dim_shape)])
 
     def check(*, actual, expected):
         assert isinstance(actual, type(expected))

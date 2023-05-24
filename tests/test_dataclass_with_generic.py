@@ -46,18 +46,14 @@ def _rt(t: str, x: Any) -> None:
     assert eval(f"deserialize({t}, serialize(x)) == x")
 
 
-def test_serialize_non_generic(
-    simple_10, simple_neg_2, simple_str, nested_int_int, nested_int_str
-):
+def test_serialize_non_generic(simple_10, simple_neg_2, simple_str, nested_int_int, nested_int_str):
     for s in [simple_10, simple_neg_2, simple_str]:
         assert deserialize(SimpleGeneric, serialize(s)) == s
     for n in [nested_int_int, nested_int_str]:
         assert deserialize(NestedGeneric, serialize(n)) == n
 
 
-def test_serialize_generic(
-    simple_10, simple_neg_2, simple_str, nested_int_int, nested_int_str
-):
+def test_serialize_generic(simple_10, simple_neg_2, simple_str, nested_int_int, nested_int_str):
     for s in [simple_10, simple_neg_2]:
         _rt("SimpleGeneric[int]", s)
     _rt("SimpleGeneric[str]", simple_str)
@@ -69,29 +65,29 @@ def test_serialize_generic_complex_nested():
     x = NestedGeneric[
         str,
         NestedGeneric[
-            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+            int,
+            NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
         ],
     ](
         SimpleGeneric[str](value="i am a str"),
         SimpleGeneric[
             NestedGeneric[
-                int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+                int,
+                NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
             ]
         ](
             value=NestedGeneric[
                 int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
             ](
                 v1=SimpleGeneric[int](value=999),
-                v2=SimpleGeneric[
-                    NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
-                ](
-                    value=NestedGeneric[
-                        float, NestedGeneric[List[int], Mapping[str, int]]
-                    ](
+                v2=SimpleGeneric[NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]](
+                    value=NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]](
                         v1=SimpleGeneric[float](value=-1.0),
                         v2=SimpleGeneric[NestedGeneric[List[int], Mapping[str, int]]](
                             value=NestedGeneric[List[int], Mapping[str, int]](
-                                v1=SimpleGeneric[List[int]](value=[0, 2, 4, 6, 8, 10],),
+                                v1=SimpleGeneric[List[int]](
+                                    value=[0, 2, 4, 6, 8, 10],
+                                ),
                                 v2=SimpleGeneric[Mapping[str, int]](
                                     value={
                                         "hello": 0,
@@ -112,7 +108,8 @@ def test_serialize_generic_complex_nested():
         NestedGeneric[
             str,
             NestedGeneric[
-                int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+                int,
+                NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
             ],
         ],
         serialize(x),
@@ -165,7 +162,8 @@ def test_align_generic_concrete_complex_nested():
         x[1],
         "B",
         NestedGeneric[
-            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+            int,
+            NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
         ],
     )
 

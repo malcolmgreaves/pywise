@@ -42,7 +42,8 @@ def dict_type_representation(nt_or_dc_type: Type) -> Discover:
         return _dict_type(nt_or_dc_type)
     except Exception as e:
         raise TypeError(
-            f"Failed to discover field-type attributes of type: '{nt_or_dc_type}", e,
+            f"Failed to discover field-type attributes of type: '{nt_or_dc_type}",
+            e,
         )
 
 

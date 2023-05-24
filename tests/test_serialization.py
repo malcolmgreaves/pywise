@@ -573,7 +573,9 @@ def test_serialized_nested_defaults_advanced():
             nt_name=HasDefaultsNT("hello world!"),
             next=Next2(
                 dc_value=HasDefaultsDC(-50),
-                next=Next3(nt_name=HasDefaultsNT("goodbye universe?"),),
+                next=Next3(
+                    nt_name=HasDefaultsNT("goodbye universe?"),
+                ),
             ),
         ),
     )
