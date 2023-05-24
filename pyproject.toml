@@ -28,6 +28,9 @@ torch = "*"
 pytest-cov = "*"
 coveralls = "*"
 
+[tool.black]
+line-length = 100
+
 [build-system]
 requires = ["poetry>=1.0"]
 build-backend = "poetry.masonry.api"
