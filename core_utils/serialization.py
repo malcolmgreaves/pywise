@@ -284,7 +284,7 @@ def _namedtuple_from_dict(
                     _namedtuple_field_types(namedtuple_type),
                     data,
                     namedtuple_type,
-                    _namedtuple_field_defaults(namedtuple_type),
+                    _namedtuple_field_defaults(namedtuple_type, custom),
                     custom,
                 )
             )
@@ -315,9 +315,10 @@ def _namedtuple_field_types(
 
 def _namedtuple_field_defaults(
     namedtuple_type: Type[SomeNamedTuple],
+    custom: Optional[CustomFormat] = None,
 ) -> Mapping[str, Any]:
     return {
-        k: serialize(v, no_none_values=False)
+        k: serialize(v, custom=custom, no_none_values=False)
         for k, v in namedtuple_type._field_defaults.items()  # type: ignore
     }
 
@@ -333,7 +334,7 @@ def _dataclass_from_dict(
     if is_dataclass(dataclass_type) or is_generic_dataclass:
         try:
             all_field_type_default: List[Tuple[str, Type, Optional[Any]]] = list(
-                _dataclass_field_types_defaults(dataclass_type)
+                _dataclass_field_types_defaults(dataclass_type, custom)
             )
         except AttributeError as ae:
             raise TypeError(
@@ -369,6 +370,7 @@ def _dataclass_from_dict(
 
 def _dataclass_field_types_defaults(
     dataclass_type: Type,
+    custom: Optional[CustomFormat] = None,
 ) -> Iterable[Tuple[str, Type, Optional[Any]]]:
     """Obtain the fields & their expected types for the given @dataclass type.
     """
@@ -384,22 +386,22 @@ def _dataclass_field_types_defaults(
                 typ = _exec(data_field.type.__origin__, tn)
             else:
                 typ = data_field.type
-            return data_field.name, typ, _default_of(data_field)
+            return data_field.name, typ, _default_of(data_field, custom)
 
     else:
         dataclass_fields = dataclass_type.__dataclass_fields__  # type: ignore
 
         def handle_field(data_field: Field) -> Tuple[str, Type, Optional[Any]]:
-            return data_field.name, data_field.type, _default_of(data_field)
+            return data_field.name, data_field.type, _default_of(data_field, custom)
 
     return list(map(handle_field, dataclass_fields.values()))
 
 
-def _default_of(data_field: Field) -> Optional[Any]:
+def _default_of(data_field: Field, custom: Optional[CustomFormat] = None) -> Optional[Any]:
     return (
         None
         if isinstance(data_field.default, _MISSING_TYPE)
-        else serialize(data_field.default, no_none_values=False)
+        else serialize(data_field.default, custom=custom, no_none_values=False)
     )
 
 

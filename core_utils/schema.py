@@ -9,6 +9,7 @@ from typing import (
     cast,
     Callable,
     Tuple,
+    Optional,
 )
 from dataclasses import is_dataclass
 
@@ -17,6 +18,7 @@ from core_utils.serialization import (
     is_typed_namedtuple,
     _namedtuple_field_types,
     _dataclass_field_types_defaults,
+    CustomFormat,
 )
 
 
@@ -34,19 +36,24 @@ Discover = Union[Mapping[str, Union[type, Discover]], Sequence[Discover]]
 """
 
 
-def dict_type_representation(nt_or_dc_type: Type) -> Discover:
+def dict_type_representation(
+    nt_or_dc_type: Type, custom: Optional[CustomFormat] = None
+) -> Discover:
     """The dictionary JSON-like named attribute & expected type representation computed
     from the supplied NamedTuple-deriving or @dataclass decorated type.
     """
     try:
-        return _dict_type(nt_or_dc_type)
+        return _dict_type(nt_or_dc_type, custom)
     except Exception as e:
         raise TypeError(
             f"Failed to discover field-type attributes of type: '{nt_or_dc_type}", e,
         )
 
 
-def _dict_type(t: type):
+def _dict_type(
+    t: type,
+    custom: Optional[CustomFormat] = None,
+):
     if is_typed_namedtuple(t) or is_dataclass(t):
         if is_typed_namedtuple(t):
             field_types_of: Callable[
@@ -57,7 +64,7 @@ def _dict_type(t: type):
         else:
 
             def field_types_of() -> Iterable[Tuple[str, type]]:
-                for a, b, _ in _dataclass_field_types_defaults(t):
+                for a, b, _ in _dataclass_field_types_defaults(t, custom):
                     yield a, b
 
         accum = {name: _dict_type(field_type) for name, field_type in field_types_of()}
