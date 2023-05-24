@@ -256,7 +256,7 @@ def is_namedtuple(x: Any) -> bool:
 
 def is_typed_namedtuple(x: Any) -> bool:
     """Check to see if a value is a `typing.NamedTuple` instance or `type`."""
-    return is_namedtuple(x) and getattr(x, "_field_types", None) is not None
+    return is_namedtuple(x) and getattr(x, "__annotations__", None) is not None
 
 
 def _namedtuple_from_dict(
