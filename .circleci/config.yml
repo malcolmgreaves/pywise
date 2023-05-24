@@ -35,9 +35,9 @@ jobs:
             pip install poetry
             poetry install
             poetry build
-            poetry run black --check 
+            poetry run black --check .
             poetry run flake8 --max-line-length=100 --ignore=E501,W293,E303,W291,W503,E203,E731,E231,E721,E722,E741 .
-            poetry run mypy --ignore-missing-imports --follow-imports=silent --show-column-numbers --warn-unreachable . 
+            poetry run mypy --ignore-missing-imports --follow-imports=silent --show-column-numbers --warn-unreachable --install-types --non-interactive . 
             poetry run pytest -v --cov core_utils
             poetry run coverage html
             poetry run coveralls

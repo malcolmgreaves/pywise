@@ -137,7 +137,7 @@ def deserialize(
 
     if isinstance(type_value, TypeVar):  # type: ignore
         # is a generic type alias: cannot do much with this, so return as-is
-        return value
+        return value  # type: ignore
 
     checking_type_value: Type = checkable_type(type_value)
 
@@ -416,7 +416,7 @@ def _align_generic_concrete(
             generics = origin.__parameters__  # type: ignore
             values = get_args(data_type_with_generics)  # type: ignore
         for g, v in zip(generics, values):
-            yield g, v
+            yield g, v  # type: ignore
     except AttributeError as e:
         raise ValueError(
             f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
