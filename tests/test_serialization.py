@@ -3,7 +3,18 @@ import json
 from collections import namedtuple
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import NamedTuple, Sequence, Optional, Mapping, Set, Tuple, Union, Any
+from typing import (
+    NamedTuple,
+    Sequence,
+    Optional,
+    Mapping,
+    Set,
+    Tuple,
+    Union,
+    Any,
+    List,
+    Dict,
+)
 
 from pytest import raises, fixture
 import yaml
@@ -580,3 +591,21 @@ def test_serialized_nested_defaults_advanced():
 
     s = serialize(nested)
     assert nested == deserialize(NestedDefaultsMixed, s)
+
+
+def test_serialize_dict_with_numeric_keys():
+    d1: Dict[int, List[str]] = {
+        i: [x for x in "hello world! how are you today?"] for i in range(10)
+    }
+    s1 = serialize(d1)
+    assert deserialize(Dict[int, List[str]], s1) == d1
+
+    j1 = json.dumps(s1)
+    assert deserialize(Dict[int, List[str]], json.loads(j1)) == d1
+
+    d2: Dict[float, List[str]] = {float(i): xs for i, xs in d1.items()}
+    s2 = serialize(d2)
+    assert deserialize(Dict[int, List[str]], s2) == d2
+
+    j2 = json.dumps(s2)
+    assert deserialize(Dict[int, List[str]], json.loads(j2)) == d2
