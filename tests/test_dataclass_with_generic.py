@@ -141,7 +141,7 @@ def test_align_generic_concrete_two_level():
     x = list(_align_generic_concrete(Mapping[str, Any]))
     assert len(x) == 2
     _align(x[0], "KT", str)
-    _align(x[1], "VT_co", Any)
+    _align(x[1], "VT_co", Any)  # type: ignore
 
 
 def test_align_generic_concrete_complex_nested():
@@ -198,11 +198,11 @@ def test_generic_wo_holes():
     assert deserialize(SimpleNoGen, serialize(x)) == x
     assert deserialize(SimpleNoGen[Any], serialize(x)) == x
 
-    x = NestedNoGen[bytes, type, list](
+    x = NestedNoGen[bytes, type, list](  # type: ignore
         group_name="The Three Stooges",
-        a=SimpleNoGen[bytes](age=109, name="Mo"),
-        b=SimpleNoGen[bytes](age=42, name="Larry"),
-        c=SimpleNoGen[bytes](age=-6, name="Curly"),
+        a=SimpleNoGen[bytes](age=109, name="Mo"),  # type: ignore
+        b=SimpleNoGen[bytes](age=42, name="Larry"), # type: ignore
+        c=SimpleNoGen[bytes](age=-6, name="Curly"),  # type: ignore
     )
     assert deserialize(NestedNoGen[bytes, type, list], serialize(x)) == x
     assert deserialize(NestedNoGen, serialize(x)) == x

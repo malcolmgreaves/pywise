@@ -91,10 +91,10 @@ def _test_roundtrip(s, t, v, expected_str):
 
 
 def test_is_optional():
-    assert _is_optional(Optional[int])
-    assert not _is_optional(int)
-    assert _is_optional(Union[str, float, None])
-    assert not _is_optional(Union[str, float])
+    assert _is_optional(Optional[int])  # type: ignore
+    assert not _is_optional(int) 
+    assert _is_optional(Union[str, float, None])  # type: ignore
+    assert not _is_optional(Union[str, float])  # type: ignore
 
 
 def _test_fail_deserialize_field_except(t):
@@ -117,11 +117,11 @@ def _test_fail_deserialize_seq_field_except(t):
         deserialize(t, d)
 
     with raises(FieldDeserializeFail):
-        d = {"elements": 1.0}
+        d = {"elements": 1.0}  # type: ignore
         deserialize(t, d)
 
     with raises(MissingRequired):
-        d = {"world": "hello"}
+        d = {"world": "hello"}  # type: ignore
         deserialize(t, d)
 
 

@@ -67,7 +67,7 @@ def test_type_name():
         ),
     ]
     for inp, expected in tests:
-        actual = type_name(inp)
+        actual = type_name(inp)  # type: ignore
         assert actual == expected, f"Failed for {inp}"
 
 
