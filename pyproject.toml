@@ -24,7 +24,7 @@ ipdb = "*"
 pyyaml = "*"
 tox = "^4.5"
 numpy = "^1.21"
-torch = "^2.0"
+torch = "^2.0.0"
 pytest-cov = "*"
 coveralls = "*"
 
