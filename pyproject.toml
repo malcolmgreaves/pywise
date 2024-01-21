@@ -26,7 +26,7 @@ tox = "^4.12.1"
 # external dependencies needed in tests
 numpy = "^1.21" # note: needs to be compatible with apple silicon
 pyyaml = "*"
-torch = "*"
+#torch = "*" # optional test dependency: can install manually via `pip install torch` during development
 # for ease of development
 ipython = "*"
 ipdb = "*"

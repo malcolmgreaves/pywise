@@ -3,28 +3,46 @@ from dataclasses import dataclass
 from typing import Tuple, NamedTuple, Mapping, Sequence
 
 import numpy as np
-import torch
-from pytest import fixture
+from pytest import fixture, mark
 
 from core_utils.serialization import CustomFormat, serialize, deserialize
+
+
+def _pytorch_installed() -> bool:
+    try:
+        import torch  # noqa
+    except ImportError:
+        return False
+    else:
+        return True
 
 
 @fixture(scope="module")
 def custom_serialize() -> CustomFormat:
     np_ser = lambda arr: arr.tolist()
-    return {
-        np.ndarray: np_ser,
-        torch.Tensor: lambda tnsr: np_ser(tnsr.detach().cpu().numpy()),
-    }
+    custom_format = {np.ndarray: np_ser}
+    try:
+        import torch
+    except ImportError:
+        # optional test dependency
+        pass
+    else:
+        custom_format[torch.Tensor] = lambda tnsr: np_ser(tnsr.detach().cpu().numpy())
+    return custom_format
 
 
 @fixture(scope="module")
 def custom_deserialize() -> CustomFormat:
     np_deser = lambda lst: np.array(lst)
-    return {
-        np.ndarray: np_deser,
-        torch.Tensor: lambda lst: torch.from_numpy(np_deser(lst)),
-    }
+    custom_format = {np.ndarray: np_deser}
+    try:
+        import torch
+    except ImportError:
+        # optional test dependency
+        pass
+    else:
+        custom_format[torch.Tensor] = lambda lst: torch.from_numpy(np_deser(lst))
+    return custom_format
 
 
 @fixture(scope="module")
@@ -84,6 +102,10 @@ def test_serialization_numpy_array(
     )
 
 
+@mark.skipif(
+    condition=not _pytorch_installed(),
+    reason="Requires PyTorch to be installed! Optional test dependency.",
+)
 def test_serialization_torch_tensor(
     custom_serialize,
     custom_deserialize,
@@ -91,14 +113,19 @@ def test_serialization_torch_tensor(
     times_for_random_value_array_test,
     multi_dim_shape,
 ):
-    _test_procedue(
-        custom_serialize,
-        custom_deserialize,
-        simple_test_array_length,
-        times_for_random_value_array_test,
-        multi_dim_shape,
-        lambda s: torch.from_numpy(np.random.random(s)),
-    )
+    try:
+        import torch
+    except ImportError:
+        raise EnvironmentError("Should have been skipped w/ decorator! Missing pytorch for test!")
+    else:
+        _test_procedue(
+            custom_serialize,
+            custom_deserialize,
+            simple_test_array_length,
+            times_for_random_value_array_test,
+            multi_dim_shape,
+            lambda s: torch.from_numpy(np.random.random(s)),
+        )
 
 
 def test_custom_serialize_map(custom_serialize, custom_deserialize, multi_dim_shape):
