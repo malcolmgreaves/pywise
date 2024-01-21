@@ -1,0 +1,15 @@
+# make sure **ALL** tools here are in pyproject.toml as:
+#   - listed as dev-dependencies
+#   - version specifiers are **EXACTLY** the same
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        name: "python:black"
+        entry: black --config .black.toml
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        name: "python:flake8"

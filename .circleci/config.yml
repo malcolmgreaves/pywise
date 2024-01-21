@@ -34,6 +34,7 @@ jobs:
             rm .python-version
             pip install poetry
             poetry install
+            poetry run pre-commit install
             poetry build
             poetry run black --check .
             poetry run flake8 --max-line-length=100 --ignore=E501,W293,E303,W291,W503,E203,E731,E231,E721,E722,E741 .

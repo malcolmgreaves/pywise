@@ -27,6 +27,14 @@ poetry run python
 ```
 Alternatively, you may activate the environment by performing `poetry shell` and directly invoke Python programs.
 
+### Development Practices
+Install pre-commit `git` hooks using `pre-commit install`. Hooks are defined in the `.pre-commit-config.yaml` file.
+
+CI enforces linting using all pre-commit hooks.
+
+NOTE: Dependencies in hooks **MUST** be kept in-sync with the 
+      `dev-dependencies` section in `pyproject.toml` for `poetry.
+
 
 #### Testing
 To run tests, execute:
