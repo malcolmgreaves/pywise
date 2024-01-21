@@ -92,7 +92,7 @@ def _test_roundtrip(s, t, v, expected_str):
 
 def test_is_optional():
     assert _is_optional(Optional[int])  # type: ignore
-    assert not _is_optional(int) 
+    assert not _is_optional(int)
     assert _is_optional(Union[str, float, None])  # type: ignore
     assert not _is_optional(Union[str, float])  # type: ignore
 
