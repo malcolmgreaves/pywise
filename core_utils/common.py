@@ -31,7 +31,7 @@ def type_name(t: type, keep_main: bool = True) -> str:
         return str(t)
 
     if isinstance(t, TypeVar):  # type: ignore
-        return str(t)
+        return str(t)  # type: ignore
 
     full_name = f"{mod}.{t.__name__}"
     try:
@@ -109,9 +109,7 @@ def split_module_value(full_name: str, validate: bool = True) -> Tuple[str, str]
     return m, v
 
 
-def dynamic_load(
-    module_name: str, value_name: Optional[str], validate: bool = True
-) -> Any:
+def dynamic_load(module_name: str, value_name: Optional[str], validate: bool = True) -> Any:
     """Dynamically load a Python module, class, function, or object from its module and specific name.
 
     Loads the module :param:`module_name`. If :param:`value_name` is not None,

@@ -109,7 +109,9 @@ def serialize(
 
 
 def deserialize(
-    type_value: Type, value: Any, custom: Optional[CustomFormat] = None,
+    type_value: Type,
+    value: Any,
+    custom: Optional[CustomFormat] = None,
 ) -> Any:
     """Does final conversion of the `dict`-like `value` into an instance of `type_value`.
 
@@ -135,7 +137,7 @@ def deserialize(
 
     if isinstance(type_value, TypeVar):  # type: ignore
         # is a generic type alias: cannot do much with this, so return as-is
-        return value
+        return value  # type: ignore
 
     checking_type_value: Type = checkable_type(type_value)
 
@@ -172,25 +174,20 @@ def deserialize(
                 return deserialize(possible_type, value, custom)
             except Exception:
                 continue
-        raise FieldDeserializeFail(
-            field_name="", expected_type=type_value, actual_value=value
-        )
+        raise FieldDeserializeFail(field_name="", expected_type=type_value, actual_value=value)
 
     elif issubclass(checking_type_value, Mapping):
         _args = get_args(type_value)
         k_type = cast(type, _args[0])
         v_type = cast(type, _args[1])
         return {
-            deserialize(k_type, k, custom): deserialize(v_type, v, custom)
-            for k, v in value.items()
+            deserialize(k_type, k, custom): deserialize(v_type, v, custom) for k, v in value.items()
         }
 
     elif issubclass(checking_type_value, Tuple) and checking_type_value != str:  # type: ignore
         tuple_type_args = get_args(type_value)
         converted = map(
-            lambda type_val_pair: deserialize(
-                type_val_pair[0], type_val_pair[1], custom
-            ),
+            lambda type_val_pair: deserialize(type_val_pair[0], type_val_pair[1], custom),
             zip(tuple_type_args, value),
         )
         return tuple(converted)
@@ -221,11 +218,7 @@ def deserialize(
             and not isinstance(value, checking_type_value)
         ):
             # numeric check: some ints can be a float
-            if (
-                float == type_value
-                and isinstance(value, int)
-                and int(float(value)) == value
-            ):
+            if float == type_value and isinstance(value, int) and int(float(value)) == value:
                 value = float(value)
             # and some floats can be ints
             elif int == type_value and isinstance(value, float) and int(value) == value:
@@ -262,9 +255,8 @@ def is_namedtuple(x: Any) -> bool:
 
 
 def is_typed_namedtuple(x: Any) -> bool:
-    """Check to see if a value is a `typing.NamedTuple` instance or `type`.
-    """
-    return is_namedtuple(x) and getattr(x, "_field_types", None) is not None
+    """Check to see if a value is a `typing.NamedTuple` instance or `type`."""
+    return is_namedtuple(x) and getattr(x, "__annotations__", None) is not None
 
 
 def _namedtuple_from_dict(
@@ -292,7 +284,7 @@ def _namedtuple_from_dict(
 
         except AttributeError as ae:  # pragma: no cover
             raise TypeError(
-                "Did you pass in a valid NamedTuple type? It needs ._field_types "
+                "Did you pass in a valid NamedTuple type? It needs .__annotations__ "
                 "to return the list of valid field names & expected types! "
                 "And ._make to accept the initialization values. Type "
                 f"'{type_name(namedtuple_type)}' does not work. ",
@@ -308,9 +300,8 @@ def _namedtuple_from_dict(
 def _namedtuple_field_types(
     namedtuple_type: Type[SomeNamedTuple],
 ) -> Iterable[Tuple[str, Type]]:
-    """Obtain the fields & expected types of a NamedTuple-deriving type.
-    """
-    return namedtuple_type._field_types.items()  # type: ignore
+    """Obtain the fields & expected types of a NamedTuple-deriving type."""
+    return namedtuple_type.__annotations__.items()  # type: ignore
 
 
 def _namedtuple_field_defaults(
@@ -323,10 +314,11 @@ def _namedtuple_field_defaults(
 
 
 def _dataclass_from_dict(
-    dataclass_type: Type, data: dict, custom: Optional[CustomFormat],
+    dataclass_type: Type,
+    data: dict,
+    custom: Optional[CustomFormat],
 ) -> Any:
-    """Constructs an @dataclass instance using :param:`data`.
-    """
+    """Constructs an @dataclass instance using :param:`data`."""
     is_generic_dataclass = hasattr(dataclass_type, "__origin__") and is_dataclass(
         dataclass_type.__origin__
     )
@@ -355,9 +347,7 @@ def _dataclass_from_dict(
             field_and_types, data, dataclass_type, field_defaults, custom
         )
         deserialized_fields = list(deserialized_fields)
-        field_values = dict(
-            zip(map(lambda x: x[0], field_and_types), deserialized_fields)
-        )
+        field_values = dict(zip(map(lambda x: x[0], field_and_types), deserialized_fields))
         instantiated_dataclass = dataclass_type(**field_values)
         return instantiated_dataclass
     else:
@@ -370,8 +360,7 @@ def _dataclass_from_dict(
 def _dataclass_field_types_defaults(
     dataclass_type: Type,
 ) -> Iterable[Tuple[str, Type, Optional[Any]]]:
-    """Obtain the fields & their expected types for the given @dataclass type.
-    """
+    """Obtain the fields & their expected types for the given @dataclass type."""
     if hasattr(dataclass_type, "__origin__"):
         dataclass_fields = dataclass_type.__origin__.__dataclass_fields__  # type: ignore
         generic_to_concrete = dict(_align_generic_concrete(dataclass_type))
@@ -427,7 +416,7 @@ def _align_generic_concrete(
             generics = origin.__parameters__  # type: ignore
             values = get_args(data_type_with_generics)  # type: ignore
         for g, v in zip(generics, values):
-            yield g, v
+            yield g, v  # type: ignore
     except AttributeError as e:
         raise ValueError(
             f"Cannot find __origin__, __dataclass_fields__ on type '{data_type_with_generics}'",
@@ -436,8 +425,7 @@ def _align_generic_concrete(
 
 
 def _fill(generic_to_concrete, generic_type):
-    """Fill-in the parameterized types in generic_type using the generic-to-concrete type mapping.
-    """
+    """Fill-in the parameterized types in generic_type using the generic-to-concrete type mapping."""
     tn = type_name(generic_type, keep_main=False)
     for g in generic_type.__parameters__:
         tn = tn.replace(
@@ -448,8 +436,7 @@ def _fill(generic_to_concrete, generic_type):
 
 
 def _exec(origin_type, tn):
-    """Using the module where `origin_type` is defined, instantiate the class defined in the `tn` string.
-    """
+    """Using the module where `origin_type` is defined, instantiate the class defined in the `tn` string."""
     module, _ = split_module_value(type_name(origin_type, keep_main=True))
     m_bits = module.split(".")
     # fmt: off
@@ -508,18 +495,10 @@ def _values_for_type(
                 and not isinstance(value, field_type)
             ):
                 # numeric check: some ints can be a float
-                if (
-                    float == field_type
-                    and isinstance(value, int)
-                    and int(float(value)) == value
-                ):
+                if float == field_type and isinstance(value, int) and int(float(value)) == value:
                     value = float(value)
                 # and some floats can be ints
-                elif (
-                    int == field_type
-                    and isinstance(value, float)
-                    and int(value) == value
-                ):
+                elif int == field_type and isinstance(value, float) and int(value) == value:
                     value = int(value)
                 # but in general we just identified a value that
                 # didn't deserialize to its expected type
@@ -549,12 +528,7 @@ def _values_for_type(
             else:
                 yield None
         except Exception as e:
-            print(
-                "ERROR deserializing field:'"
-                + str(field_name)
-                + "'\n"
-                + traceback.format_exc()
-            )
+            print("ERROR deserializing field:'" + str(field_name) + "'\n" + traceback.format_exc())
             if isinstance(e, (FieldDeserializeFail, MissingRequired)):
                 raise e
             else:
@@ -565,8 +539,7 @@ def _values_for_type(
 
 @dataclass(frozen=True)
 class MissingRequired(Exception):
-    """Exception encountered when a data dict is missing a required field.
-    """
+    """Exception encountered when a data dict is missing a required field."""
 
     field_name: str
     field_expected_type: type
@@ -583,8 +556,7 @@ class MissingRequired(Exception):
 
 @dataclass(frozen=True)
 class FieldDeserializeFail(Exception):
-    """General exception indicating that some error occurred when deserializing a specific field.
-    """
+    """General exception indicating that some error occurred when deserializing a specific field."""
 
     field_name: str
     expected_type: type
@@ -606,8 +578,7 @@ class FieldDeserializeFail(Exception):
 
 
 def _is_optional(t: type) -> bool:
-    """Evaluates to true iff the input is a type that is equivalent to an `Optional`.
-    """
+    """Evaluates to true iff the input is a type that is equivalent to an `Optional`."""
     try:
         type_args = get_args(t)
         only_one_none_type = (
@@ -619,6 +590,5 @@ def _is_optional(t: type) -> bool:
 
 
 def _is_union(t: type) -> bool:
-    """Evaluates to true iff the input is a union (not an Optional) type.
-    """
+    """Evaluates to true iff the input is a union (not an Optional) type."""
     return get_origin(t) is Union and not _is_optional(t)

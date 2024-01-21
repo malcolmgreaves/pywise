@@ -46,18 +46,14 @@ def _rt(t: str, x: Any) -> None:
     assert eval(f"deserialize({t}, serialize(x)) == x")
 
 
-def test_serialize_non_generic(
-    simple_10, simple_neg_2, simple_str, nested_int_int, nested_int_str
-):
+def test_serialize_non_generic(simple_10, simple_neg_2, simple_str, nested_int_int, nested_int_str):
     for s in [simple_10, simple_neg_2, simple_str]:
         assert deserialize(SimpleGeneric, serialize(s)) == s
     for n in [nested_int_int, nested_int_str]:
         assert deserialize(NestedGeneric, serialize(n)) == n
 
 
-def test_serialize_generic(
-    simple_10, simple_neg_2, simple_str, nested_int_int, nested_int_str
-):
+def test_serialize_generic(simple_10, simple_neg_2, simple_str, nested_int_int, nested_int_str):
     for s in [simple_10, simple_neg_2]:
         _rt("SimpleGeneric[int]", s)
     _rt("SimpleGeneric[str]", simple_str)
@@ -69,29 +65,29 @@ def test_serialize_generic_complex_nested():
     x = NestedGeneric[
         str,
         NestedGeneric[
-            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+            int,
+            NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
         ],
     ](
         SimpleGeneric[str](value="i am a str"),
         SimpleGeneric[
             NestedGeneric[
-                int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+                int,
+                NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
             ]
         ](
             value=NestedGeneric[
                 int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
             ](
                 v1=SimpleGeneric[int](value=999),
-                v2=SimpleGeneric[
-                    NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]
-                ](
-                    value=NestedGeneric[
-                        float, NestedGeneric[List[int], Mapping[str, int]]
-                    ](
+                v2=SimpleGeneric[NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]]](
+                    value=NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]](
                         v1=SimpleGeneric[float](value=-1.0),
                         v2=SimpleGeneric[NestedGeneric[List[int], Mapping[str, int]]](
                             value=NestedGeneric[List[int], Mapping[str, int]](
-                                v1=SimpleGeneric[List[int]](value=[0, 2, 4, 6, 8, 10],),
+                                v1=SimpleGeneric[List[int]](
+                                    value=[0, 2, 4, 6, 8, 10],
+                                ),
                                 v2=SimpleGeneric[Mapping[str, int]](
                                     value={
                                         "hello": 0,
@@ -112,7 +108,8 @@ def test_serialize_generic_complex_nested():
         NestedGeneric[
             str,
             NestedGeneric[
-                int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+                int,
+                NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
             ],
         ],
         serialize(x),
@@ -144,7 +141,7 @@ def test_align_generic_concrete_two_level():
     x = list(_align_generic_concrete(Mapping[str, Any]))
     assert len(x) == 2
     _align(x[0], "KT", str)
-    _align(x[1], "VT_co", Any)
+    _align(x[1], "VT_co", Any)  # type: ignore
 
 
 def test_align_generic_concrete_complex_nested():
@@ -165,7 +162,8 @@ def test_align_generic_concrete_complex_nested():
         x[1],
         "B",
         NestedGeneric[
-            int, NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
+            int,
+            NestedGeneric[float, NestedGeneric[List[int], Mapping[str, int]]],
         ],
     )
 
@@ -200,11 +198,11 @@ def test_generic_wo_holes():
     assert deserialize(SimpleNoGen, serialize(x)) == x
     assert deserialize(SimpleNoGen[Any], serialize(x)) == x
 
-    x = NestedNoGen[bytes, type, list](
+    x = NestedNoGen[bytes, type, list](  # type: ignore
         group_name="The Three Stooges",
-        a=SimpleNoGen[bytes](age=109, name="Mo"),
-        b=SimpleNoGen[bytes](age=42, name="Larry"),
-        c=SimpleNoGen[bytes](age=-6, name="Curly"),
+        a=SimpleNoGen[bytes](age=109, name="Mo"),  # type: ignore
+        b=SimpleNoGen[bytes](age=42, name="Larry"),  # type: ignore
+        c=SimpleNoGen[bytes](age=-6, name="Curly"),  # type: ignore
     )
     assert deserialize(NestedNoGen[bytes, type, list], serialize(x)) == x
     assert deserialize(NestedNoGen, serialize(x)) == x

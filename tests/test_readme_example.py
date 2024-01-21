@@ -59,9 +59,7 @@ def ab():
                 PhoneNumber(510, 3452113),
                 EmailAddress("malcolm", "world.com"),
                 contact_type=ContactType.professional,
-                emergency_contact=Emergency(
-                    "Superman", PhoneNumber(262, 1249865, extension=1)
-                ),
+                emergency_contact=Emergency("Superman", PhoneNumber(262, 1249865, extension=1)),
             ),
         ]
     )
