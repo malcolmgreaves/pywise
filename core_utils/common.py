@@ -31,7 +31,7 @@ def type_name(t: type, keep_main: bool = True) -> str:
         return str(t)
 
     if isinstance(t, TypeVar):  # type: ignore
-        return str(t)
+        return str(t)  # type: ignore
 
     full_name = f"{mod}.{t.__name__}"
     try:

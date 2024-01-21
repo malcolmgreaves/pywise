@@ -13,20 +13,23 @@ packages = [
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8.1"
 
 [tool.poetry.dev-dependencies]
+# test & development tools: important to pin these to minimum working versions
 mypy = "^1.8"
 black = "^23.12.1"
-flake8 = "*"
-ipython = "*"
-ipdb = "*"
-pyyaml = "^6.0.1"
-tox = "^4.12.1"
-numpy = "^1.21"
-torch = "^2.0.0"
+flake8 = "^7.0.0"
 pytest-cov = "^4.1.0"
 coveralls = "^3.3.1"
+tox = "^4.12.1"
+# external dependencies needed in tests
+numpy = "^1.21" # note: needs to be compatible with apple silicon
+pyyaml = "*"
+torch = "*"
+# for ease of development
+ipython = "*"
+ipdb = "*"
 
 [tool.black]
 line-length = 100
