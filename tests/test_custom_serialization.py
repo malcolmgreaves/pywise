@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import Tuple, NamedTuple, Mapping, Sequence
+from typing import Tuple, NamedTuple, Mapping, Sequence, Dict, Callable, Any
 
 import numpy as np
 from pytest import fixture, mark
@@ -20,7 +20,7 @@ def _pytorch_installed() -> bool:
 @fixture(scope="module")
 def custom_serialize() -> CustomFormat:
     np_ser = lambda arr: arr.tolist()
-    custom_format = {np.ndarray: np_ser}
+    custom_format: Dict[type, Callable[[Any], Any]] = {np.ndarray: np_ser}
     try:
         import torch
     except ImportError:
@@ -34,7 +34,7 @@ def custom_serialize() -> CustomFormat:
 @fixture(scope="module")
 def custom_deserialize() -> CustomFormat:
     np_deser = lambda lst: np.array(lst)
-    custom_format = {np.ndarray: np_deser}
+    custom_format: Dict[type, Callable[[Any], Any]] = {np.ndarray: np_deser}
     try:
         import torch
     except ImportError:
