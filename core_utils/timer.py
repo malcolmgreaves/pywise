@@ -4,66 +4,77 @@ import time
 from datetime import timedelta
 from logging import Logger
 from types import FrameType
-from typing import Optional
+from typing import Optional, Sequence
+
+__all__: Sequence[str] = (
+    "Timer",
+)
 
 
-class timer:  # pylint: disable=invalid-name
+class Timer:  # pylint: disable=invalid-name
     """Context manager for timing a block of code.
 
     Example use case -- consider timing a function `f`:
 
-    >>> def f():
-    >>>     time.sleep(1) # simulate "long computation"
+    >>> def long_computation(n_seconds: int = 1) -> None:
+    >>>     # simulate lots of computation by waiting
+    >>>     time.sleep(n_seconds)
 
-    Directly use the timer and grab `duration` after the context block has finished:
+    Directly use the timer and access the `duration` attribute after the context block has finished:
 
-    >>> with timer() as block_timer:
-    >>>     f()
-    >>> print(f"{block_timer.duration:0.4f}s")
+    >>> with Timer() as timing_block:
+    >>>     long_computation()
+    >>> print(f"{timing_block.duration:0.4f}s")
 
-    Note that the duration is in seconds. It is a `float`, so it can represent fractional seconds.
+    Note that the duration is in seconds. It is a `float`: it can represent fractional seconds.
 
-    The other use case is to pass in a `name` and a `logger`. The timing will be recorded
-    when the context block is exited:
+    The other use case is to pass in a `name` and a standard `logging.Logger` instance.
+    The timing will be recorded when the context block is exited:
 
-    >>> from ml_infra_services.loggers import make_logger
+    >>> from logging import Logger
     >>>
-    >>> log = make_logger("my-main-program")
+    >>> log: Logger = ...
     >>>
-    >>> with timer(logger=log, name="timing-func-f"):
-    >>>     f()
+    >>> with Timer(logger=log, name="timing long_computation(10)"):
+    >>>     long_computation(n_seconds=10)
     """
 
-    __slots__ = ("logger", "name", "_duration", "start")
+    __slots__ = ("_logger", "_name", "_duration", "_start")
 
     def __init__(self, logger: Optional[Logger] = None, name: str = "") -> None:
-        self.logger = logger
-        self.name = name
+        self._logger = logger
+        self._name = name
         self._duration: Optional[float] = None
         # for start, -1 is the uninitialized value
         # it is set at the context-block entering method: __enter__
-        self.start: float = -1.0
+        self._start: float = -1.0
 
-    def __enter__(self) -> "timer":
-        """Records start time: context-block entering function."""
-        self.start = time.monotonic()
+    def __enter__(self) -> "Timer":
+        """Captures start time.
+
+        Raises a `ValueError`
+        """
+        if self._start != -1.0:
+            raise ValueError("Cannot restart timing: create a new Timer for each managed context!")
+        self._start = time.monotonic()
         # avoid any code execution *after* recording start
         return self
 
     def __exit__(self, *args) -> None:
-        """Records end time: context-block exiting function."""
+        """Stores end time.
+
+        Raises a `ValueError` iff this is called before `__enter__` (i.e. before context block is entered).
+        """
         # calculate the duration *first*
         # CRITICAL: do not introduce any additional latency in this timing measurement
-        self._duration = time.monotonic() - self.start
+        self._duration = time.monotonic() - self._start
         # i.e. validation occurs after
-        if self.start == -1:
-            raise ValueError(
-                "Cannot use context-block exit method if context-block enter method has not been " "called!"
-            )
+        if self._start == -1:
+            raise ValueError("Must start timing before recording end!")
         self._maybe_log_end_time()
 
     def _maybe_log_end_time(self) -> None:
-        if self.logger is not None:
+        if self._logger is not None:
             caller_namespace = "<unknown_caller_namespace>"
             frame: Optional[FrameType] = inspect.currentframe()
             if frame is not None:
@@ -71,10 +82,10 @@ class timer:  # pylint: disable=invalid-name
                 if frame is not None:
                     caller_namespace = frame.f_globals["__name__"]
             metric_name = f"timer.{caller_namespace}"
-            if self.name:
-                metric_name = f"{metric_name}.{self.name}"
+            if self._name:
+                metric_name = f"{metric_name}.{self._name}"
             msg = f"{metric_name} - {self._duration:5.2f}s"
-            self.logger.info(msg, stacklevel=2)
+            self._logger.info(msg, stacklevel=2)
 
     @property
     def duration(self) -> float:
