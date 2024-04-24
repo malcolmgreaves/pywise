@@ -1,7 +1,14 @@
-"""Utilities for formatting and printing messages, especially for CLI programs."""
 import traceback
 from logging import Logger
 from typing import Any, List, Optional, Sequence, Tuple, Union
+
+
+__all__: Sequence[str] = (
+    "program_init_param_msg",
+    "evenly_space",
+    "exception_stacktrace",
+    "format_stacktrace",
+)
 
 
 def program_init_param_msg(
@@ -37,7 +44,7 @@ def program_init_param_msg(
         logger.info(starting + "\n".join([separator] + list(msg) + [separator]))
 
 
-def evenly_space(name_and_value: Sequence[Tuple[str, Any]]) -> Sequence[str]:
+def evenly_space(name_and_value: Sequence[Tuple[str, Any]]) -> List[str]:
     """Pads the middle of (name,value) pairs such that all values vertically align.
 
     Adds a ':' after each name (first element of each tuple).
@@ -51,27 +58,6 @@ def evenly_space(name_and_value: Sequence[Tuple[str, Any]]) -> Sequence[str]:
         spacing = " " * len_spacing
         values.append(f"{name}: {spacing}{value}")
     return values
-
-
-def strip_non_empty(s: str, name_for_error: str) -> str:
-    """Trims whitespace from :param:`s`, then raises a `ValueError` iff the string is empty."""
-    s = s.strip()
-    if len(s) == 0:
-        raise ValueError(f"{name_for_error} cannot be empty")
-    return s
-
-
-def split_module_value(full_name: str, validate: bool = True) -> Tuple[str, str]:
-    """Split a fully-qualified Python value's name into its complete module name
-    and the value name.
-
-    :raises ValueError If :param:`full_name` is empty. Or if the supplied value
-                       consists only of a module name.
-    """
-    if validate:
-        full_name = strip_non_empty(full_name, "complete path name")
-    m, v = full_name.rsplit(".", maxsplit=1)
-    return m, v
 
 
 def exception_stacktrace(e: Exception) -> List[str]:

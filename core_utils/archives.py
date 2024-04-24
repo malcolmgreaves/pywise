@@ -1,7 +1,11 @@
 import shutil
 import tarfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
+
+__all__: Sequence[str] = (
+    "extract_archive",
+)
 
 
 def extract_archive(
