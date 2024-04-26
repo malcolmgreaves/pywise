@@ -1,24 +1,23 @@
+from dataclasses import is_dataclass
 from typing import (
-    Type,
-    Iterable,
-    Union,
     Any,
+    Callable,
+    Iterable,
     Mapping,
     Sequence,
-    get_args,
-    cast,
-    Callable,
     Tuple,
+    Type,
+    Union,
+    cast,
+    get_args,
 )
-from dataclasses import is_dataclass
 
-from core_utils.common import type_name, checkable_type
+from core_utils.common import checkable_type, type_name
 from core_utils.serialization import (
-    is_typed_namedtuple,
-    _namedtuple_field_types,
     _dataclass_field_types_defaults,
+    _namedtuple_field_types,
+    is_typed_namedtuple,
 )
-
 
 __all__ = ["dict_type_representation", "Discover"]
 

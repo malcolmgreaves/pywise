@@ -1,21 +1,21 @@
+import typing
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
-    NamedTuple,
-    Union,
-    Optional,
-    Generic,
-    TypeVar,
-    Sequence,
-    Mapping,
     Dict,
+    Generic,
     List,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
 )
 
-import typing
 from pytest import raises
 
-from core_utils.common import type_name, import_by_name, checkable_type
+from core_utils.common import checkable_type, import_by_name, type_name
 
 
 class NTX(NamedTuple):

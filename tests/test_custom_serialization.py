@@ -1,11 +1,11 @@
 import json
 from dataclasses import dataclass
-from typing import Tuple, NamedTuple, Mapping, Sequence, Dict, Callable, Any
+from typing import Any, Callable, Dict, Mapping, NamedTuple, Sequence, Tuple
 
 import numpy as np
 from pytest import fixture, mark
 
-from core_utils.serialization import CustomFormat, serialize, deserialize
+from core_utils.serialization import CustomFormat, deserialize, serialize
 
 
 def _pytorch_installed() -> bool:

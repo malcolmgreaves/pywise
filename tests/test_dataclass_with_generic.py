@@ -1,18 +1,17 @@
-from typing import Tuple, Any, Type, List, Mapping
+from typing import Any, List, Mapping, Tuple, Type
 
 from pytest import fixture
 
-from core_utils.support_for_testing import (
-    SimpleGeneric,
-    NestedGeneric,
-    SimpleNoGen,
-    NestedNoGen,
-)
-
 from core_utils.serialization import (
-    serialize,
-    deserialize,
     _align_generic_concrete,
+    deserialize,
+    serialize,
+)
+from core_utils.support_for_testing import (
+    NestedGeneric,
+    NestedNoGen,
+    SimpleGeneric,
+    SimpleNoGen,
 )
 
 

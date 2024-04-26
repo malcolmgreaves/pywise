@@ -1,7 +1,7 @@
 import os
+from functools import partial
 from typing import Any, Callable, Dict, Optional
 from uuid import uuid4
-from functools import partial
 
 import pytest
 
@@ -101,4 +101,5 @@ def test_environment_with_exception(existing):
         with Environment(**{e: new}):
             _expect_present(e, new)
             raise ValueError("Uh oh! Something went wrong in our context!")
-    check()
+    # unreachable
+    check()  # type: ignore

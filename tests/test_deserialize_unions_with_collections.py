@@ -1,8 +1,9 @@
+from dataclasses import dataclass
+from typing import Mapping, Sequence, Union
+
 import pytest
 
-from core_utils.serialization import serialize, deserialize
-from dataclasses import dataclass
-from typing import Union, Sequence, Mapping
+from core_utils.serialization import deserialize, serialize
 
 
 @dataclass(frozen=True)
