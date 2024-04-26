@@ -8,8 +8,6 @@ repos:
       - id: ruff
         args:
           - --fix
-          - --line-length=100
-          - --ignore=E501,W293,E303,W291,E203,E731,E231,E721,E722,E741
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.10.0
     hooks:
