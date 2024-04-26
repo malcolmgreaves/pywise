@@ -1,87 +1,123 @@
 import os
-from typing import Any, ContextManager, Dict, Optional, Sequence
+from typing import ContextManager, Dict, Optional, Sequence, Union
 
 __all__: Sequence[str] = ("Environment",)
 
 
-class Environment(ContextManager):
-    """Context manager for temporarily setting environment variables.
+EnvValues = Union[str, int, None, bool, float, bytes]
+"""The set of valid environment variable values and all values from coercible types.
 
-     This context manager sets specific environment variables when in use. When entering a context,
-     this class will record the previous values for all of the env vars that it will set. Upon exit,
-     this class restores all previous values to the environment variables that it changed during
-     the context. Variables that were unset before entering the context with :class:`Environment`
-     will be unset when the context is exited.
+The `EnvValues` type works with the `Environment` context manger.
 
-     **WARNING**: Mutates the `os.environ` environment variable mapping in the :func:`__enter__`
-                  and :func:`__exit__` methods. Every `__enter__` **MUST** be followed-up by an `__exit__`.
+Value types of `EnvValues`:  
+    - `str`: valid, string environment variable 
+    - `None`: represents deleted environment variable from `os.environ`
 
-     The suggested use pattern is to make a new :class:`Environment` for each scope where one
-    requires temporarily setting environment variables. This common use case looks like:
-     >>> with Environment(ENV_VAR='your-value'):
-     >>>     # do something that needs this ENV_VAR set to 'your-value'
-     >>>     ...
-     >>> # Environment variable "ENV_VAR" is reset to its prior value.
-     >>> # If there was not a previously set value for "ENV_VAR", then it is unset now.
+Coercible types of `EnvValues`. The docstring for the `to_environment_value` function describes the conversion.
+"""
 
-     You can also use `environment` to temporarily ensure that an environment variable is not set:
-     >>>> with Environment(ENV_VAR=None):
-     >>>>   # There is no longer any Environment variable value for "ENV_VAR"
-     >>>>   ...
-     >>>> # If there was one beforehand, the Environment variable "ENV_VAR" is reset.
-     >>>> # Otherwise, it is still unset.
+Env = Union[str, None]
+"""Set of value environment variable values: can be directly mapped into `os.environ` context manipulation.
 
-     However, it is possible, however to create one :class:`Environment` instance and re-use to
-     temporarily reset the same declared environment variable state. This use case looks like:
-     >>>> os.environ['ENV_VAR'] = 'first value'
-     >>>> setter = Environment(ENV_VAR='new value')
-     >>>> with setter:
-     >>>>    # ENV_VAR is now set to 'new value'
-     >>>> # ENV_VAR is restored: it is set to 'first value'
-     >>>> os.environ['ENV_VAR'] = 'second value'
-     >>>> setter.set()
-     >>>> # ENV_VAR is now set to 'new value' again
-     >>>> setter.unset()
-     >>>> # ENV_VAR is now restored: it is set to 'second value'
+NOTE: For `bytes` conversion, any decode error will result in an exception being raised.
+"""
+
+
+def to_environment_value(value: EnvValues) -> Env:
+    """Converts environment variable settings into acceptable values for the `Environment` context manager.
+
+    Coercible types of `EnvValues` are converted according to these rules:
+      - `int`: converted to a string by effectively surrounding with quotes: using the builtin `str` function
+      - `bool`: convert to an `int` via `True` --> `"1"`, `False` --> `"0"`; then converted to `str` using `int` rules
+      - `float`: converted to string by using the builtin `str` function
+      - `bytes`: converted to `str` by assuming UTF-8 and decoding
+
+    Raises `ValueError` if a value of a type that is not described above is supplied for `value`.
+
+    NOTE: Raises an exception on UTF-8 decoding failure for `bytes` to `str` conversion.
     """
 
-    def __init__(self, **env_vars) -> None:
-        """Initializes the manager with new environemnt variable values to use during the context.
+    if value is None or isinstance(value, str):
+        new_val: Optional[str] = value
+    elif isinstance(value, bool):
+        new_val = str(int(value))
+    elif isinstance(value, (int, float)):
+        new_val = str(value)
+    elif isinstance(value, bytes):
+        new_val = value.decode('utf8')
+    else:
+        raise ValueError(
+            f"Environment variable must be either None or a a string (str). "
+                f"Limited coercan is available for values of {EnvValues}"
+                f"(int, float, bool, bytes). Value is unacceptable {type(value)=}: {value}"
+            )
 
-         NOTE: All environment variables must be string (`str`) valued or `None`.
-               Simple primitive values -- `float`, `int`, `bytes`, `bool` -- will be coerced into
-               a `str` value in the constructor. Any value of another type will result in a
-               `ValueError` being raised.
-
-         Note that supplying `None` means that the environment variable will not be present.
-         That is, it will be deleted from the mapping `os.environ` during the context.
-
-         This is different than setting the environment variable to the empty string (`""`).
-         Using `X=None` means that `"X" in os.environ` will be `False`. Whereas, using `X=""`
-         means that `"X" in os.environ` will be `True`.
-
-        The constructor allows for specifying env vars as keyword arguments:
-        >>>> Environment(ENV_VAR_1='...', ENV_VAR_2='...', ENV_VAR_K='...')
-
-        It is also possible to supply these via a dictionary:
-        >>>> envars: Dict[str, str] = {"ENV_VAR_1": '...', "ENV_VAR_2": '...', "ENV_VAR_K": '...'}
-        >>>> Environment(**envars)
-
-        However, if any key i.e. environment variable name is empty, or not a string (`str`), then
-        this constructor will raise a `ValueError`.
+    return new_val
 
 
-        ERRORS:
-              - Raises :class:`ValueError` if:
-                 - the environment variable name is not a non-empty string
-                 - the value is not None or a string (or a value that can be automatically coerced
-                                                      into a string)
+def valid_environment_name(env_var: str) -> None:
+    """Raises value error iff supplied with something that is not a valid environment variable name (string).
+    """
+    if not isinstance(env_var, str) or len(env_var) == 0:
+        raise ValueError(f"Need valid environment variable name, not ({type(env_var)}) '{env_var}'")
 
+class Environment(ContextManager):
+    """Temporary override environment variables.
+
+    Use as a context manager for overriding arbitrary environment variables. Previous enviornment variable values
+    before entering the context are restored on upon exit. EnvValues are restored regardless of normal or exceptional
+    execution of code within the context.
+
+    NOTE: This context manager directly modifies `os.environ`, the standard library's environment variable mapping.
+
+    The common use case of `Environment` is to set a few well known variables. For example:
+     >>> with Environment(USER='someone', HOME="/Users/someone"):
+     >>>     # do something that relies on these values, $USER and $HOME
+     >>>     ...
+     >>> # USER and HOME are reset
+
+    Environment variables are passed by name as keyword arguments. For programantic use of `Environment` context
+    creation, pass dictionaries by key-value with the `**` operator. For example:
+    >>> overrides = {"USER": "different", "HOME":"/Users/someone", "SHELL": "/bin/zsh"}
+    >>> with Environment(**overrides):
+    >>>   # context has new values as specified in overrides
+    >>>   ...
+
+    Any environment variable set to a value of `None` will be deleted within the context. As in:
+    Similarily, any variable that did not exist in the environment before the context, but was set to a
+    non-`None` value during the context will be deleted from the environment upon exit.
+
+    Note that an `Envionment` instance is stateless itself. It can be reused to conditionally or repeatedly reset
+    environment vairables via `os.environ` mutation. For example:
+    >>> env_predconditions = Environment(**overrides)
+    >>> do_work_dependent_env: callable = ...
+    >>> for hip_hip in range(3):
+    >>>   if hip_hip % 2 == 0:
+    >>>     with env_predconditions:
+    >>>       do_work_dependent_env()
+    >>>   else:
+    >>>     print("You are wonderful and beautiful! :)")
+
+    """
+
+    def __init__(self, **env_vars: EnvValues) -> None:
+        """Initializes the context manager with new environment variable settings.
+
+        All environment variables must be a string (`str`), an `int` (`int`), or `None`.
+
+        There is support to automatically convert a limited set of other types into the allowable
+        set of environment variable values. The `to_environment_value` function, used here,
+        provides this conversion from the wider set, defined as `EnvValues`, to the set of
+        allowable values, `Env`.
+
+        Any other value for an environment variable will result in a `ValueError` being raised during
+        initialization.
         """
-        # used in __enter__ and __exit__: keeps track of prior existing Environment
-        # variable settings s.t. they can be reset when the context block is finished
+        # record values of `os.environ` before and after the managed context
+        # populated in `__enter__` and cleared in `__exit__`
         self.__prior_env_var_setting: Dict[str, Optional[str]] = dict()
 
+        # the
         # we store the user's set of desired temporary values for Environment variables
         # we also validate these settings to a minimum bar of correctness
         self.__new_env_var_settings: Dict[str, Optional[str]] = {
@@ -89,15 +125,10 @@ class Environment(ContextManager):
         }
 
     def __enter__(self) -> "Environment":
-        """Grabs the current in-environment values and sets the variables to their supplied values.
+        """Records current state of environment variables (`os.environ`) and sets all overrides.
 
-        The context-entering step. This method grabs all of the current in-environment values for
-        all supplied variables. This grabs the exact values inside `os.environ`.
-
-        Then, this method sets each of these variables to the values that were supplied at
-        construction time.
-
-        WARNING: Mutates internal state!
+        NOTE: Mutates the standard library's `environ` in the `os` package.
+              State pre-call is restored via the `__exit__` method.
         """
         # get the existing values for all of the to-be-set env vars before setting them
         for env, val in self.__new_env_var_settings.items():
@@ -116,14 +147,8 @@ class Environment(ContextManager):
     def __exit__(self, exc_type, exc_value, traceback):
         """Restores the previous values of all overridden environment variables.
 
-        Using the values captured in `__enter__`, this context-exiting method will restore
-        all overriden environment variables to their previous values. If any environment variable
-        that was set during the context did not have a previous value before the managed context,
-        then it is unset. As in, it won't appear in `os.environ` once this method finishes.
-
-        NOTE: This method ignores all input arguments.
-
-        WARNING: Mutates internal state!
+        NOTE: Values captured in a call to `__enter__` are restored into
+              `os.environ` when calling this method.
         """
         # restore all env vars
         for env, prior in self.__prior_env_var_setting.items():
@@ -159,20 +184,10 @@ class Environment(ContextManager):
         self.__exit__(None, None, None)  # type: ignore
 
 
-def _check_env_var_setting(env_var: Any, value: Any) -> Optional[str]:
-    """Ensures `env_var` is ok to set. Returns acceptable `value`. Raises `ValueError` otherwise."""
-    if not isinstance(env_var, str) or len(env_var) == 0:
-        raise ValueError(f"Need valid environment variable name, not ({type(env_var)}) '{env_var}'")
-    if value is None or isinstance(value, str):
-        new_val: Optional[str] = value
-    else:
-        if isinstance(value, (bytes, int, float, bool)):
-            new_val = str(value)
-        else:
-            raise ValueError(
-                f"Environment variable {env_var} must be either None, a string (str), or "
-                "a value that can be coerced into a string automatically "
-                f"(int, float, bool, bytes). Value is unacceptable {type(value)=}: {value}"
-            )
 
-    return new_val
+
+
+def _check_env_var_setting(name: str, value: EnvValues) -> Env:
+    valid_environment_name(name)
+    return to_environment_value(value)
+

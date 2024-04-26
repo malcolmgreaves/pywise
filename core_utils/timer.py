@@ -46,7 +46,7 @@ class Timer:  # pylint: disable=invalid-name
         self._name = name
         self._duration: Optional[float] = None
         # for start, -1 is the uninitialized value
-        # it is set at the context-block entering method: __enter__
+        # it is set at the context-block qentering method: __enter__
         self._start: float = -1.0
 
     def __enter__(self) -> "Timer":

@@ -1,5 +1,14 @@
 from importlib import import_module
-from typing import _GenericAlias, Any, Tuple, Optional, Type, TypeVar, get_args, Sequence  # type: ignore
+from typing import (  # type: ignore
+    Any,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    _GenericAlias,
+    get_args,
+)
 
 __all__: Sequence[str] = (
     "type_name",
