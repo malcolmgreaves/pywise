@@ -1,7 +1,7 @@
 """Python-language-based utility functions."""
 import builtins
 from importlib import import_module
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from pywise_additions.utils_general.format import split_module_value, strip_non_empty
 
@@ -15,10 +15,10 @@ def dynamic_load(module_name: str, value_name: Optional[str], validate: bool = T
     if validate:
         module_name = strip_non_empty(module_name, "module name")
     module = import_module(module_name)
-    if value_name:
+    if value_name is not None and len(value_name) > 0:
         if validate:
             value_name = strip_non_empty(value_name, "value name")
-        return getattr(module, value_name)
+        return getattr(module, cast(str, value_name))
     return module
 
 
