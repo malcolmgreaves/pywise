@@ -1,0 +1,32 @@
+# make sure **ALL** tools here are in pyproject.toml as:
+#   - listed as dev-dependencies
+#   - version specifiers are **EXACTLY** the same
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        name: "python:black"
+        args:
+          - --check
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        name: "python:flake8"
+        args:
+          - --max-line-length=100
+          - --ignore=E501,W293,E303,W291,W503,E203,E731,E231,E721,E722,E741
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        args:
+          - --follow-imports=silent
+          - --show-column-numbers
+          - --warn-unreachable
+          - --install-types
+          - --non-interactive
+          - --check-untyped-defs
+
+
