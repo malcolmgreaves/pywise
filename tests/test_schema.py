@@ -1,9 +1,8 @@
 import json
-from typing import NamedTuple, Sequence, Optional, Mapping
 from dataclasses import dataclass
+from typing import Mapping, NamedTuple, Optional, Sequence
 
 from core_utils.schema import dict_type_representation
-
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                        Shared Test Helpers                        #

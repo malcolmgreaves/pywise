@@ -17,6 +17,7 @@ repos:
         args:
           - --follow-imports=silent
           - --show-column-numbers
+          - --ignore-missing-imports
           - --warn-unreachable
           - --install-types
           - --non-interactive

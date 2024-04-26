@@ -1,11 +1,11 @@
 import json
-from typing import Optional, Union, Sequence, NamedTuple
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import NamedTuple, Optional, Sequence, Union
 
 from pytest import fixture
 
-from core_utils.serialization import serialize, deserialize
+from core_utils.serialization import deserialize, serialize
 
 
 @dataclass(frozen=True)

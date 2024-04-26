@@ -3,22 +3,21 @@ import json
 from collections import namedtuple
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import NamedTuple, Sequence, Optional, Mapping, Set, Tuple, Union, Any
+from typing import Any, Mapping, NamedTuple, Optional, Sequence, Set, Tuple, Union
 
-from pytest import raises, fixture
 import yaml
-
+from pytest import fixture, raises
 
 from core_utils.serialization import (
-    serialize,
+    FieldDeserializeFail,
+    MissingRequired,
+    _dataclass_from_dict,
+    _is_optional,
+    _namedtuple_from_dict,
     deserialize,
     is_namedtuple,
     is_typed_namedtuple,
-    _namedtuple_from_dict,
-    _is_optional,
-    FieldDeserializeFail,
-    _dataclass_from_dict,
-    MissingRequired,
+    serialize,
 )
 
 
