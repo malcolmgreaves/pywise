@@ -20,7 +20,7 @@ python = "^3.8.1"
 pre-commit = "^3.5.0"
 # keep in-sync with .pre-commit-config.yaml
 mypy = "^1.10.0"
-ruff = "^0.4.2"
+ruff = "^0.4.6"
 # end sync
 # testing related
 pytest-cov = "^4.1.0"
