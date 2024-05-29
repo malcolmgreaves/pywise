@@ -3,7 +3,12 @@ from typing import List, Sequence
 
 import pytest
 
-from core_utils.format import exception_stacktrace, format_stacktrace, program_init_param_msg
+from core_utils.format import (
+    evenly_space,
+    exception_stacktrace,
+    format_stacktrace,
+    program_init_param_msg,
+)
 
 
 @dataclass
@@ -53,6 +58,24 @@ you
 today?
 ------""".strip()
     )
+
+
+def test_evenly_space():
+    terms = [
+        ("hello", 52),
+        ("what do we have", "here?"),
+        ("something good?", None),
+    ]
+    results = evenly_space(terms)
+    assert "\n".join(results) == (
+        """
+hello:           52
+what do we have: here?
+something good?: None
+""".strip()
+    )
+
+    assert evenly_space([]) == []
 
 
 def test_program_init_param_msg_name_log_each_line(message):
