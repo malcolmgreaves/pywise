@@ -1,17 +1,20 @@
 import shutil
 import tarfile
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Literal, Optional, Sequence
 
 __all__: Sequence[str] = (
     "extract_archive",
+    "CompressionTypes",
 )
+
+CompressionTypes = Literal["gz", "bz2", "xz"]
 
 
 def extract_archive(
     src_archive: Path,
     dest_dir: Path,
-    compression_ext: Optional[str] = None,
+    compression_ext: Optional[CompressionTypes] = None,
     overwrite: bool = False,
 ) -> None:
     """Uncompress and extract the source tar archive as a directory as the named destination path.
@@ -47,14 +50,16 @@ def extract_archive(
 
     if compression_ext is None:
         if src_archive.name.endswith("gz"):
-            compression_ext = "gz"
+            comp_ext: Literal['gz', 'bz2', 'xz', '*'] = "gz"
         elif src_archive.name.endswith("bz2"):
-            compression_ext = "bz2"
+            comp_ext = "bz2"
         elif src_archive.name.endswith("xz"):
-            compression_ext = "xz"
+            comp_ext = "xz"
         else:
-            compression_ext = "*"
-    mode = f"r:{compression_ext}"
+            comp_ext = "*"
+    else:
+        comp_ext = compression_ext
+    mode = f"r:{comp_ext}"
 
     with tarfile.open(name=str(src_archive.absolute()), mode=mode) as archive:
         if dest_dir.exists() and overwrite:
