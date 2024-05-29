@@ -91,6 +91,7 @@ def import_by_name(full_name: str, validate: bool = True) -> Any:
 
     try:
         try:
+            # validate=False because we have already checked
             module_name, value_name = split_module_value(full_name, validate=False)
             return dynamic_load(module_name, value_name, validate=False)
         except ValueError:
