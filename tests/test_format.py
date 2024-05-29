@@ -1,5 +1,4 @@
-from dataclasses import dataclass, field
-from typing import List, Sequence
+from typing import Sequence
 
 import pytest
 
@@ -9,14 +8,7 @@ from core_utils.format import (
     format_stacktrace,
     program_init_param_msg,
 )
-
-
-@dataclass
-class MockLogger:
-    internal: List[str] = field(default_factory=lambda: [])
-
-    def info(self, x: str) -> None:
-        self.internal.append(x)
+from core_utils.support_for_testing import MockLogger
 
 
 @pytest.fixture(scope="module")

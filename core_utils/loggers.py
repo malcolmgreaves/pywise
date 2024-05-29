@@ -77,7 +77,7 @@ def logger_name(*, fallback_name: Optional[str] = None) -> str:
     name = calling_module.__name__
     if name == "__main__":
         # unless logger_name was called from an executing script,
-        # in which case we use it's file name
+        # in which case we use its file name
 
         if hasattr(calling_module, "__file__"):
             assert calling_module.__file__ is not None
@@ -109,9 +109,10 @@ def make_standard_logger(
     return logger
 
 
-def standardize_log_level(log_level: LogLevel) -> LogLevelInt:
+def standardize_log_level(log_level: Union[LogLevel, str, int]) -> LogLevelInt:
     """Converts string (or int) for log level into its canonical int representation."""
     if isinstance(log_level, str):
+        log_level = log_level.upper()  # type: ignore
         if log_level not in LogLevelStr.__args__ or log_level not in logging._nameToLevel:  # type: ignore
             raise ValueError(
                 f"Unrecognized logging level (str): {log_level}, from known {LogLevelStr}"
