@@ -103,3 +103,15 @@ def test_environment_with_exception(existing):
             raise ValueError("Uh oh! Something went wrong in our context!")
     # unreachable
     check()  # type: ignore
+
+
+def test_environment_manual():
+    e = "hello123"
+    assert e not in os.environ
+    env = Environment(**{e: "world"})
+    assert e not in os.environ
+    env.set()
+    assert e in os.environ
+    assert os.environ[e] == 'world'
+    env.unset()
+    assert e not in os.environ
