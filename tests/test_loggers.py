@@ -29,6 +29,9 @@ def test_make_standard_logger():
     logger.info("hello world!")
     assert True
 
+    with pytest.raises(ValueError):
+        make_standard_logger("")
+
 
 @pytest.mark.parametrize(
     "input_,expected",
@@ -61,6 +64,9 @@ def test_standardize_log_level_fail():
     with pytest.raises(ValueError):
         standardize_log_level(-10)
 
+    with pytest.raises(TypeError):
+        standardize_log_level(None)  # type: ignore
+
 
 def test_print_logger():
     print_logger().info("hello world")
@@ -83,29 +89,39 @@ def test_silence_chatty_logger():
 
 
 def test_loggers_at_level():
-    message = "this is printed once!"
+    message = "this is printed twice!"
     logger = MockLogger()
     logger.info(message)
     with loggers_at_level(logger, new_level=logging.FATAL):  # type: ignore
+        logger.debug(message)
         logger.info(message)
+        logger.warning(message)
+        logger.error(message)
+        logger.fatal(message)
+    assert len(logger.internal) == 2
     assert logger.internal[0] == message
-    assert len(logger.internal) == 1
+    assert logger.internal[1] == message
     # OLD: uncomment this line to see output!
     # requires logger = print_logger()
     # raise ValueError()
     """
         def test_loggers_at_level():
-            message = "this is printed once!"
+            message = "this is printed twice!"
             logger = print_logger()
             logger.info(message)
             with loggers_at_level(logger, new_level=logging.FATAL):
+                logger.debug(message)
                 logger.info(message)
+                logger.warning(message)
+                logger.error(message)
+                logger.fatal(message)
     >       raise ValueError()
     E       ValueError
 
     tests/test_loggers.py:75: ValueError
     ------------------------------------------------------------------------------------------------- Captured log call --------------------------------------------------------------------------------------------------
-    INFO     print:test_loggers.py:72 this is printed once!
+    INFO     print:test_loggers.py:96 this is printed twice!
+    INFO     print:test_loggers.py:100 this is printed twice!
     """
 
 
