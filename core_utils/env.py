@@ -16,7 +16,7 @@ Value types of `EnvValues`:
 Coercible types of `EnvValues`. The docstring for the `to_environment_value` function describes the conversion.
 """
 
-Env = Union[str, None]
+Env = Optional[str]
 """Set of value environment variable values: can be directly mapped into `os.environ` context manipulation.
 
 NOTE: For `bytes` conversion, any decode error will result in an exception being raised.
@@ -48,8 +48,8 @@ def to_environment_value(value: EnvValues) -> Env:
     else:
         raise ValueError(
             f"Environment variable must be either None or a a string (str). "
-                f"Limited coercan is available for values of {EnvValues}"
-                f"(int, float, bool, bytes). Value is unacceptable {type(value)=}: {value}"
+            f"Limited coercion is available for values of {EnvValues}."
+            f"Value is unacceptable {type(value)=}: {value}"
             )
 
     return new_val
@@ -58,8 +58,9 @@ def to_environment_value(value: EnvValues) -> Env:
 def valid_environment_name(env_var: str) -> None:
     """Raises value error iff supplied with something that is not a valid environment variable name (string).
     """
-    if not isinstance(env_var, str) or len(env_var) == 0:
+    if not isinstance(env_var, str) or len(env_var.strip()) == 0:
         raise ValueError(f"Need valid environment variable name, not ({type(env_var)}) '{env_var}'")
+
 
 class Environment(ContextManager):
     """Temporary override environment variables.
