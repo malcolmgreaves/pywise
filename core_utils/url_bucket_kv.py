@@ -1,10 +1,19 @@
-"""URL-based utility functions."""
-
 import re
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Sequence
+
+__all__: Sequence[str] = (
+    "parse_bucket_kv_url",
+    "ParsedKvUrl",
+    "InvalidBucketKvUrl",
+)
 
 
-class ParsedURL(NamedTuple):
+class ParsedKvUrl(NamedTuple):
+    """The URL components of a bucket based key-value store.
+
+    Useful for AWS S3-like stores. Use alongside the `parse_attachment_url` function.
+    """
+
     protocol: str
     bucket: str
     key: str
@@ -16,27 +25,15 @@ class ParsedURL(NamedTuple):
         """
         return f"{self.protocol}://{self.bucket}/{self.key}"
 
-    @staticmethod
-    def s3(bucket: str, key: str, region: Optional[str] = None) -> "ParsedURL":
-        return ParsedURL(protocol="s3", bucket=bucket, key=key, region=region)
 
-    @staticmethod
-    def gs(bucket: str, key: str, region: Optional[str] = None) -> "ParsedURL":
-        return ParsedURL(protocol="gs", bucket=bucket, key=key, region=region)
-
-    @staticmethod
-    def cds(bucket: str, key: str, region: Optional[str] = None) -> "ParsedURL":
-        return ParsedURL(protocol="scale-cds", bucket=bucket, key=key, region=region)
-
-
-class InvalidAttachmentUrl(ValueError):
+class InvalidBucketKvUrl(ValueError):
     pass
 
 
-def parse_attachment_url(url: str) -> ParsedURL:
+def parse_bucket_kv_url(url: str, *, support_custom_protocol: Optional[str] = None) -> ParsedKvUrl:
     """Extracts protocol, bucket, region, and key from the :param:`url`.
 
-    :raises: InvalidAttachmentUrl Iff the input `url` is not a valid AWS S3 or GCS url.
+    :raises: InvalidBucketKvUrl Iff the input `url` is not a valid AWS S3 or GCS url.
     """
     # returns dict of protocol, bucket, region, key
     protocol = "s3"
@@ -86,22 +83,24 @@ def parse_attachment_url(url: str) -> ParsedURL:
     if match:
         bucket, key = match.group(1), match.group(2)
 
-    # pattern from https://docs.google.com/document/d/1WLbQXkQL7PLo0rkjU0RsI4SPAqUvV0WV1-FWkzicduc/edit
-    # scale-cds://62f2a2942a57fb0024e4dc3e/dgb6etBCrUHtOMQ#s3/scale-cds-private-us-west-2
-    # scale-cds://57743957186fd0060017f1a1/json/0e09cdfc-adbb-4d88-acf7-d75a478328e3
-    match = re.search("scale-cds://(\\w+)/([\\-\\w\\/]+)", url)
-    if match:
-        bucket, key = match.group(1), match.group(2)
-        protocol = "scale-cds"
+    if support_custom_protocol is not None:
+        support_custom_protocol = support_custom_protocol.strip()
+        if len(support_custom_protocol) == 0:
+            raise InvalidBucketKvUrl("support_custom_protocol cannot be empty!")
+
+        match = re.search(f"{support_custom_protocol}://(\\w+)/([\\-\\w\\/]+)", url)
+        if match:
+            bucket, key = match.group(1), match.group(2)
+            protocol = support_custom_protocol
 
     if bucket is None or key is None:
-        raise InvalidAttachmentUrl(
+        raise InvalidBucketKvUrl(
             "Invalid attachment URL: no bucket or key specified: \n" f"'{url}'"
         )
 
     clean = lambda v: (v and v.strip("/"))
 
-    return ParsedURL(
+    return ParsedKvUrl(
         protocol=clean(protocol),
         bucket=clean(bucket),
         region=clean(region),
