@@ -18,6 +18,7 @@ class MockLogger:
 def message() -> Sequence[str]:
     return ['hello', 'world', 'how', 'are', 'you', 'today?']
 
+
 @pytest.mark.parametrize('log_each_line', [True, False])
 def test_program_init_param_msg_no_name(message, log_each_line):
     log = MockLogger()
@@ -63,9 +64,9 @@ today?
 ------""".strip()
 
 
-
 def _helper_raise():
     raise ValueError()
+
 
 def test_exception_stacktrace():
     try:
@@ -81,6 +82,7 @@ def test_exception_stacktrace():
                 marker_2 = True
         assert marker_1
         assert marker_2
+
 
 def test_format_stacktrace():
     try:
