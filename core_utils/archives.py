@@ -50,7 +50,7 @@ def extract_archive(
 
     if compression_ext is None:
         if src_archive.name.endswith("gz"):
-            comp_ext: Literal['gz', 'bz2', 'xz', '*'] = "gz"
+            comp_ext: Literal["gz", "bz2", "xz", "*"] = "gz"
         elif src_archive.name.endswith("bz2"):
             comp_ext = "bz2"
         elif src_archive.name.endswith("xz"):

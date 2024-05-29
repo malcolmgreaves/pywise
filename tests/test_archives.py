@@ -29,14 +29,13 @@ def test_extract_archive_fail_conditions():
             extract_archive(Path(without_extension), Path("unreachable"), compression_ext=None)
 
 
-@mark.parametrize("ext", ['gz', 'bz2', 'xz'])
+@mark.parametrize("ext", ["gz", "bz2", "xz"])
 def test_extract_archive(ext: CompressionTypes):
     _extract_archive_test_helper("dir_to_archive", ext)
 
 
 def _extract_archive_test_helper(dirname: str, extension: CompressionTypes) -> None:
     with TemporaryDirectory() as tempdir:
-
         tar_contents, archive_file = _create_archive(tempdir, dirname, extension)
 
         # remove our extracted dir so we can be sure we are creating it fresh each time in the tests below

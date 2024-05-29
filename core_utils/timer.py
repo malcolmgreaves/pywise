@@ -1,4 +1,5 @@
 """Utilities for timing code blocks."""
+
 import inspect
 import time
 from datetime import timedelta
@@ -6,9 +7,7 @@ from logging import Logger
 from types import FrameType
 from typing import Optional, Sequence
 
-__all__: Sequence[str] = (
-    "Timer",
-)
+__all__: Sequence[str] = ("Timer",)
 
 
 class Timer:  # pylint: disable=invalid-name
@@ -17,7 +16,7 @@ class Timer:  # pylint: disable=invalid-name
     Example use case -- consider timing a function `f`:
 
     >>> def long_computation(n_seconds: int = 1) -> None:
-    >>>     # simulate lots of computation by waiting
+    >>> # simulate lots of computation by waiting
     >>>     time.sleep(n_seconds)
 
     Directly use the timer and access the `duration` attribute after the context block has finished:

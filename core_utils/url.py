@@ -1,4 +1,5 @@
 """URL-based utility functions."""
+
 import re
 from typing import NamedTuple, Optional
 
@@ -94,7 +95,9 @@ def parse_attachment_url(url: str) -> ParsedURL:
         protocol = "scale-cds"
 
     if bucket is None or key is None:
-        raise InvalidAttachmentUrl("Invalid attachment URL: no bucket or key specified: \n" f"'{url}'")
+        raise InvalidAttachmentUrl(
+            "Invalid attachment URL: no bucket or key specified: \n" f"'{url}'"
+        )
 
     clean = lambda v: (v and v.strip("/"))
 

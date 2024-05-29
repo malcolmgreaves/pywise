@@ -70,7 +70,9 @@ def logger_name(*, fallback_name: Optional[str] = None) -> str:
     calling_frame = stack[1]
     calling_module = inspect.getmodule(calling_frame[0])
     if calling_module is None:
-        raise ValueError(f"Cannot obtain module from calling function. Tried to use calling frame {calling_frame}")
+        raise ValueError(
+            f"Cannot obtain module from calling function. Tried to use calling frame {calling_frame}"
+        )
     # we try to use this module's name
     name = calling_module.__name__
     if name == "__main__":
@@ -88,9 +90,10 @@ def logger_name(*, fallback_name: Optional[str] = None) -> str:
     return name
 
 
-def make_standard_logger(name: str,
-                         log_level: LogLevel = logging.INFO, # type: ignore
-                         ) -> logging.Logger:
+def make_standard_logger(
+    name: str,
+    log_level: LogLevel = logging.INFO,  # type: ignore
+) -> logging.Logger:
     """Standard protocol for creating a logger that works well with Datadog & local development.
 
     Interoperates with the log formatting performed by standard structured log systems
@@ -110,18 +113,22 @@ def standardize_log_level(log_level: LogLevel) -> LogLevelInt:
     """Converts string (or int) for log level into its canonical int representation."""
     if isinstance(log_level, str):
         if log_level not in LogLevelStr.__args__ or log_level not in logging._nameToLevel:  # type: ignore
-            raise ValueError(f"Unrecognized logging level (str): {log_level}, from known {LogLevelStr}")
+            raise ValueError(
+                f"Unrecognized logging level (str): {log_level}, from known {LogLevelStr}"
+            )
         else:
             level: LogLevelInt = cast(LogLevelInt, logging._nameToLevel[log_level])  # type: ignore
     elif isinstance(log_level, int):
         level = cast(LogLevelInt, log_level)
         if level not in LogLevelInt.__args__:  # type: ignore
-            raise ValueError(f"Unrecognized logging level (int): {log_level}, from known {LogLevelInt}")
+            raise ValueError(
+                f"Unrecognized logging level (int): {log_level}, from known {LogLevelInt}"
+            )
     else:
-        raise TypeError(f"Expecting either int or str for log level ({LogLevel}), but found {type(log_level)}")
+        raise TypeError(
+            f"Expecting either int or str for log level ({LogLevel}), but found {type(log_level)}"
+        )
     return level
-
-
 
 
 def print_logger() -> logging.Logger:
@@ -135,7 +142,9 @@ def print_logger() -> logging.Logger:
     return logger
 
 
-def deprecation_warning(logger: logging.Logger, msg: str, *, prepend_deprecated: bool = True) -> None:
+def deprecation_warning(
+    logger: logging.Logger, msg: str, *, prepend_deprecated: bool = True
+) -> None:
     """Creates a deprecation warning log event with given the message and logger.
 
     The logger must be enabled for WARNING level or below in order for the message to be observed.
@@ -150,9 +159,10 @@ def deprecation_warning(logger: logging.Logger, msg: str, *, prepend_deprecated:
     warnings.warn(msg, DeprecationWarning)
 
 
-def silence_chatty_logger(*logger_names,
-                          quieter: LogLevelInt = logging.FATAL,   # type: ignore
-                          ) -> None:
+def silence_chatty_logger(
+    *logger_names,
+    quieter: LogLevelInt = logging.FATAL,  # type: ignore
+) -> None:
     """Sets loggers to the `quieter` level, which defaults to the highest (FATAL).
 
     Accepts a variable number of logger names (str).

@@ -7,6 +7,7 @@ they are not in a defined package and thus will not be available in the environm
 The workaround is to define them here and then, in pyproject.toml, ensure that this file
 is excluded from the build process.
 """
+
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 

@@ -44,20 +44,19 @@ def to_environment_value(value: EnvValues) -> Env:
     elif isinstance(value, (int, float)):
         new_val = str(value)
     elif isinstance(value, bytes):
-        new_val = value.decode('utf8')
+        new_val = value.decode("utf8")
     else:
         raise ValueError(
             f"Environment variable must be either None or a a string (str). "
             f"Limited coercion is available for values of {EnvValues}."
             f"Value is unacceptable {type(value)=}: {value}"
-            )
+        )
 
     return new_val
 
 
 def valid_environment_name(env_var: str) -> None:
-    """Raises value error iff supplied with something that is not a valid environment variable name (string).
-    """
+    """Raises value error iff supplied with something that is not a valid environment variable name (string)."""
     if not isinstance(env_var, str) or len(env_var.strip()) == 0:
         raise ValueError(f"Need valid environment variable name, not ({type(env_var)}) '{env_var}'")
 
@@ -73,15 +72,15 @@ class Environment(ContextManager):
 
     The common use case of `Environment` is to set a few well known variables. For example:
      >>> with Environment(USER='someone', HOME="/Users/someone"):
-     >>>     # do something that relies on these values, $USER and $HOME
+     >>> # do something that relies on these values, $USER and $HOME
      >>>     ...
      >>> # USER and HOME are reset
 
     Environment variables are passed by name as keyword arguments. For programantic use of `Environment` context
     creation, pass dictionaries by key-value with the `**` operator. For example:
-    >>> overrides = {"USER": "different", "HOME":"/Users/someone", "SHELL": "/bin/zsh"}
+    >>> overrides = {"USER": "different", "HOME": "/Users/someone", "SHELL": "/bin/zsh"}
     >>> with Environment(**overrides):
-    >>>   # context has new values as specified in overrides
+    >>> # context has new values as specified in overrides
     >>>   ...
 
     Any environment variable set to a value of `None` will be deleted within the context. As in:
@@ -185,10 +184,6 @@ class Environment(ContextManager):
         self.__exit__(None, None, None)  # type: ignore
 
 
-
-
-
 def _check_env_var_setting(name: str, value: EnvValues) -> Env:
     valid_environment_name(name)
     return to_environment_value(value)
-

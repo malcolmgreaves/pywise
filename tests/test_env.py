@@ -112,24 +112,28 @@ def test_environment_manual():
     assert e not in os.environ
     env.set()
     assert e in os.environ
-    assert os.environ[e] == 'world'
+    assert os.environ[e] == "world"
     env.unset()
     assert e not in os.environ
 
 
-@pytest.mark.parametrize("input_,expected", [
-    (None, None),
-    ("hello", "hello"),
-    (True, '1'),
-    (False, '0'),
-    (9999, "9999"),
-    (-1234.982, "-1234.982"),
-    ("goodbye".encode('utf8'), "goodbye"),
-])
+@pytest.mark.parametrize(
+    "input_,expected",
+    [
+        (None, None),
+        ("hello", "hello"),
+        (True, "1"),
+        (False, "0"),
+        (9999, "9999"),
+        (-1234.982, "-1234.982"),
+        ("goodbye".encode("utf8"), "goodbye"),
+    ],
+)
 def test_to_environment_value(input_, expected):
     actual = to_environment_value(input_)
     assert actual == expected
 
+
 def test_to_environment_value_failing():
     with pytest.raises(ValueError):
-        to_environment_value(['not, ok'])  # type: ignore
+        to_environment_value(["not, ok"])  # type: ignore
