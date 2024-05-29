@@ -4,7 +4,7 @@ import tarfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from pytest import raises
+from pytest import mark, raises
 
 from core_utils.archives import CompressionTypes, extract_archive
 
@@ -20,8 +20,10 @@ def test_extract_archive_fail_conditions():
         extract_archive(Path(__file__), Path(__file__).parent, overwrite=False)
 
 
-def test_extract_archive():
-    _extract_archive_test_helper("dir_to_archive", 'gz')
+@mark.parametrize("ext", ['gz', 'bz2', 'xz'])
+def test_extract_archive(ext: CompressionTypes):
+    _extract_archive_test_helper("dir_to_archive", ext)
+
 
 def _extract_archive_test_helper(dirname: str, extension: CompressionTypes) -> None:
     with TemporaryDirectory() as tempdir:
