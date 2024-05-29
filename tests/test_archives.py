@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 
 from pytest import raises
 
-from core_utils.archives import extract_archive
+from core_utils.archives import CompressionTypes, extract_archive
 
 
 def test_extract_archive_fail_conditions():
@@ -21,9 +21,12 @@ def test_extract_archive_fail_conditions():
 
 
 def test_extract_archive():
+    _extract_archive_test_helper("dir_to_archive", 'gz')
+
+def _extract_archive_test_helper(dirname: str, extension: CompressionTypes) -> None:
     with TemporaryDirectory() as tempdir:
         # make a directory
-        tar_contents = Path(tempdir) / "dir_to_archive"
+        tar_contents = Path(tempdir) / dirname
         tar_contents.mkdir()
         # put some files in it
         for i in range(5):
@@ -31,10 +34,10 @@ def test_extract_archive():
             with open(file, "wt") as w:
                 w.write("hello world\n")
                 w.write(f"this is file {i}\n")
-        # create the .tar.gz archive
-        archive_file = Path(tempdir) / "archive.tar.gz"
-        with tarfile.open(archive_file, "w:gz") as w:
-            w.add(tar_contents, arcname="dir_to_archive")
+        # create the .tar.{extension} archive
+        archive_file = Path(tempdir) / f"archive.tar.{extension}"
+        with tarfile.open(archive_file, f"w:{extension}") as w:
+            w.add(tar_contents, arcname=dirname)
         # remove our extracted dir so we can be sure we are creating it fresh each time in
         # the tests below
         shutil.rmtree(tar_contents)
@@ -53,7 +56,7 @@ def test_extract_archive():
 
         with TemporaryDirectory() as d:
             dest = Path(d) / "destination"
-            extract_archive(archive_file, dest, compression_ext="gz")
+            extract_archive(archive_file, dest, compression_ext=extension)
             assert dest.is_dir()
             contents = list(os.listdir(str(dest.absolute())))
             assert len(contents) > 0
