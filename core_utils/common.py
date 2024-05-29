@@ -6,7 +6,7 @@ from typing import (  # type: ignore
     Tuple,
     Type,
     TypeVar,
-    _GenericAlias,
+    _GenericAlias,  # type: ignore
     get_args,
 )
 
@@ -17,6 +17,7 @@ __all__: Sequence[str] = (
     "dynamic_load",
     "checkable_type",
 )
+
 
 def type_name(t: type, keep_main: bool = True) -> str:
     """Complete name, module & specific type name, for the given type.
