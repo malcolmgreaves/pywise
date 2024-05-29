@@ -1,13 +1,15 @@
-"""Utilities for timing code blocks."""
-
 import inspect
 import time
+from contextlib import contextmanager
 from datetime import timedelta
 from logging import Logger
 from types import FrameType
-from typing import Optional, Sequence
+from typing import Iterator, Optional, Sequence
 
-__all__: Sequence[str] = ("Timer",)
+__all__: Sequence[str] = (
+    "Timer",
+    "timeit",
+)
 
 
 class Timer:  # pylint: disable=invalid-name
@@ -161,3 +163,10 @@ class Timer:  # pylint: disable=invalid-name
 
     def __truediv__(self, other) -> float:
         return float(self) / float(other)
+
+
+@contextmanager
+def timeit(*, logger: Optional[Logger] = None, name: str = "") -> Iterator[Timer]:
+    """Different calling syntax for Timer context manager."""
+    with Timer(logger, name) as t:
+        yield t
