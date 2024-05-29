@@ -56,7 +56,10 @@ def extract_archive(
         elif src_archive.name.endswith("xz"):
             comp_ext = "xz"
         else:
-            comp_ext = "*"
+            raise ValueError(
+                "If not supplying compression extension explicitly, the source archive filename must have a "
+                f"known compatible format file extension. Unrecognized: {src_archive}"
+            )
     else:
         comp_ext = compression_ext
     mode = f"r:{comp_ext}"
