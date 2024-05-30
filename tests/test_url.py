@@ -1,30 +1,47 @@
-from pytest import raises
+from pytest import mark, raises
 
 from core_utils.url_bucket_kv import InvalidBucketKvUrl, parse_bucket_kv_url
 
-"""
-what to do here is to refactor this function to a helper
-then we call it with gs, s3 and custom w/ support for custom
-and just verify it!
-"""
 
-
-def test_parse_bucket_kv_url(protocol):
-    u = parse_bucket_kv_url(f"{protocol}://bucket/a/long32/key-here")
-    assert u.protocol == protocol
+@mark.parametrize("p", ["s3", "gcs", "custom-protocol"])
+def test_parse_bucket_kv_url_proto(p):
+    u = parse_bucket_kv_url(
+        f"{p}://bucket/a/long32/key-here", support_custom_protocol="custom-protocol"
+    )
+    assert u.protocol == p
     assert u.bucket == "bucket"
     assert u.key == "a/long32/key-here"
+    assert u.region is None
 
 
 def test_parse_bucket_kv_url_fail():
-    with raises(InvalidBucketKvUrl):
-        parse_bucket_kv_url("")
-
-    with raises(InvalidBucketKvUrl):
-        parse_bucket_kv_url("protocol://bucket")
-
-    with raises(InvalidBucketKvUrl):
-        parse_bucket_kv_url("protocol://bucket")
+    for invalid_url in ["", "protocol://bucket/key", "s3://bucket", "gcs://bucket"]:
+        with raises(InvalidBucketKvUrl):
+            parse_bucket_kv_url(invalid_url)
 
     with raises(InvalidBucketKvUrl):
         parse_bucket_kv_url("custom://bucket/key", support_custom_protocol="")
+
+
+def test_extended_s3_parsing():
+    for url in [
+        "http://bucket.s3.amazonaws.com/key1/key2",
+        "http://bucket.s3-aws-region.amazonaws.com/key1/key2",
+        "http://s3.amazonaws.com/bucket/key1/key2",
+        "http://s3.amazonaws.com/bucket/key1/key2",
+        "http://s3-aws-region.amazonaws.com/bucket/key1/key2",
+    ]:
+        p = parse_bucket_kv_url(url)
+        assert p.bucket == "bucket"
+        assert p.key == "key1/key2"
+        assert p.protocol == "s3"
+        # only the last example has a region specified
+        assert p.region is None or p.region == "region"
+
+
+def test_extended_gcs_parsing():
+    p = parse_bucket_kv_url("https://storage.cloud.google.com/bucket/this/is/a/key")
+    assert p.protocol == "gcs"
+    assert p.bucket == "bucket"
+    assert p.key == "this/is/a/key"
+    assert p.region is None
