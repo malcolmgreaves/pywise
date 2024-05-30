@@ -109,7 +109,7 @@ class timer:  # pylint: disable=invalid-name
             - never entered
             - entered but not exited
         """
-        if self._duration is None:
+        if self._duration == -1.0:
             raise ValueError("Cannot get duration if timer has not exited context block!")
         return self._duration
 

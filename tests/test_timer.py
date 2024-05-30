@@ -8,9 +8,10 @@ from core_utils.timer import timer
 
 
 def test_timer():
-    with timer(logger=print_logger()) as t:
+    with timer(logger=print_logger(), name="testing_timer_class") as t:
         time.sleep(0.01)
     assert t.timedelta > timedelta(seconds=0)
+    assert f"{t:0.02f}s" == "0.01s"
 
 
 def test_timer_fail():
@@ -23,6 +24,10 @@ def test_timer_fail():
     with raises(ValueError):
         with t:
             pass
+
+    with raises(ValueError):
+        with timer() as t:
+            _ = t.duration
 
 
 def test_comparisons():
@@ -42,4 +47,5 @@ def test_comparisons():
     assert t1 / t1 <= 1.0
     assert t1 / (int(t1) + 1) > 0
     assert int(t1) / (int(t1) + 1) == 0
+    assert t1 // (int(t1) + 1) == 0
     assert abs(t1) > 0
