@@ -57,7 +57,7 @@ def parse_bucket_kv_url(url: str, *, support_custom_protocol: Optional[str] = No
     if p is not None:
         return p
 
-    p = parse_s3_url_formats(url)
+    p = parse_gcs_url_formats(url)
     if p is not None:
         return p
 
