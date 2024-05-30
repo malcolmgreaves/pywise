@@ -1,26 +1,34 @@
 import time
 from datetime import timedelta
 
+from pytest import raises
+
 from core_utils.loggers import print_logger
-from core_utils.timer import Timer, timeit
-
-
-def test_timeit():
-    with timeit(name="testing timer") as t:
-        time.sleep(0.01)
-    assert t.duration > 0.0
+from core_utils.timer import timer
 
 
 def test_timer():
-    with Timer(logger=print_logger()) as t:
+    with timer(logger=print_logger()) as t:
         time.sleep(0.01)
     assert t.timedelta > timedelta(seconds=0)
 
 
+def test_timer_fail():
+    with raises(ValueError):
+        t = timer()
+        t.__exit__()
+
+    with timer() as t:
+        pass
+    with raises(ValueError):
+        with t:
+            pass
+
+
 def test_comparisons():
-    with timeit() as t2:
+    with timer() as t2:
         time.sleep(0.01)
-        with timeit() as t1:
+        with timer() as t1:
             time.sleep(0.01)
     assert t2 > t1
     assert t2 >= t1

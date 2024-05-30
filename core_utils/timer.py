@@ -1,19 +1,31 @@
 import inspect
 import time
-from contextlib import contextmanager
 from datetime import timedelta
 from logging import Logger
 from types import FrameType
-from typing import Iterator, Optional, Sequence
+from typing import Optional, Sequence
 
-__all__: Sequence[str] = (
-    "Timer",
-    "timeit",
-)
+__all__: Sequence[str] = ("timer",)
 
 
-class Timer:  # pylint: disable=invalid-name
-    """Context manager for timing a block of code.
+# The name is lower-cased here, despite being against PEP-8 naming conventions.
+# However, this is done explicitly because it is easier to write:
+#    with timer():
+# than it is to write:
+#    with Timer():
+# as the latter requires one to press shift once to get the capital 'T', breaking typing flow.
+class timer:  # pylint: disable=invalid-name
+    """Context manager for timing a block of code. Always positive timing & works with loggers.
+
+    The `timer` context manager class captures the duration of the timed block of code using
+    fractional seconds (represented interally as a 64 bit IEEE floating point number). This
+    time is guarenteed to be non-zero since it uses the Python stdlib's `time.monotoic` call,
+    which is guarneteed to produce monotoincally increasing values. I.e. it cannot go backward,
+    which is possible (and reasonable!) given adjustments from the network time protocol (NTP).
+
+    This class also interoperates well with `Logger` instances. If provided at construction,
+    the timing information is logged when the context block is exited. Note that the timed duration
+    is **always** recorded internally.
 
     Example use case -- consider timing a function `f`:
 
@@ -23,7 +35,7 @@ class Timer:  # pylint: disable=invalid-name
 
     Directly use the timer and access the `duration` attribute after the context block has finished:
 
-    >>> with Timer() as timing_block:
+    >>> with timer() as timing_block:
     >>>     long_computation()
     >>> print(f"{timing_block.duration:0.4f}s")
 
@@ -36,27 +48,28 @@ class Timer:  # pylint: disable=invalid-name
     >>>
     >>> log: Logger = ...
     >>>
-    >>> with Timer(logger=log, name="timing long_computation(10)"):
+    >>> with timer(logger=log, name="timing long_computation(10)"):
     >>>     long_computation(n_seconds=10)
     """
 
+    # compact memory layout
     __slots__ = ("_logger", "_name", "_duration", "_start")
 
     def __init__(self, logger: Optional[Logger] = None, name: str = "") -> None:
         self._logger = logger
         self._name = name
-        self._duration: Optional[float] = None
-        # for start, -1 is the uninitialized value
-        # it is set at the context-block qentering method: __enter__
+        # -1 is the uninitialized value
+        self._duration: float = -1.0
+        # _start is set in the context-block entering method: __enter__
         self._start: float = -1.0
 
-    def __enter__(self) -> "Timer":
+    def __enter__(self) -> "timer":
         """Captures start time.
 
         Raises a `ValueError`
         """
         if self._start != -1.0:
-            raise ValueError("Cannot restart timing: create a new Timer for each managed context!")
+            raise ValueError("Cannot restart timing: create a new timer for each managed context!")
         self._start = time.monotonic()
         # avoid any code execution *after* recording start
         return self
@@ -70,7 +83,7 @@ class Timer:  # pylint: disable=invalid-name
         # CRITICAL: do not introduce any additional latency in this timing measurement
         self._duration = time.monotonic() - self._start
         # i.e. validation occurs after
-        if self._start == -1:
+        if self._start == -1.0:
             raise ValueError("Must start timing before recording end!")
         self._maybe_log_end_time()
 
@@ -83,7 +96,7 @@ class Timer:  # pylint: disable=invalid-name
                 if frame is not None:
                     caller_namespace = frame.f_globals["__name__"]
             metric_name = f"timer.{caller_namespace}"
-            if self._name:
+            if len(self._name) > 0:
                 metric_name = f"{metric_name}.{self._name}"
             msg = f"{metric_name} - {self._duration:5.2f}s"
             self._logger.info(msg, stacklevel=2)
@@ -163,10 +176,3 @@ class Timer:  # pylint: disable=invalid-name
 
     def __truediv__(self, other) -> float:
         return float(self) / float(other)
-
-
-@contextmanager
-def timeit(*, logger: Optional[Logger] = None, name: str = "") -> Iterator[Timer]:
-    """Different calling syntax for Timer context manager."""
-    with Timer(logger, name) as t:
-        yield t
