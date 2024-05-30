@@ -24,28 +24,32 @@ def test_parse_bucket_kv_url_fail():
 
 
 @mark.parametrize(
-    "url",
+    "url_part",
     [
-        "http://bucket.s3.amazonaws.com/key1/key2",
-        "http://bucket.s3-aws-region.amazonaws.com/key1/key2",
-        "http://s3.amazonaws.com/bucket/key1/key2",
-        "http://bucket.s3-aws-region.amazonaws.com/key1/key2",
-        "http://s3-aws-region.amazonaws.com/bucket/key1/key2",
+        "://bucket.s3.amazonaws.com/key1/key2",
+        "://bucket.s3-region.amazonaws.com/key1/key2",
+        "://s3.amazonaws.com/bucket/key1/key2",
+        "://bucket.s3-region.amazonaws.com/key1/key2",
+        "://s3-region.amazonaws.com/bucket/key1/key2",
     ],
 )
-def test_extended_s3_parsing(url):
-    p = parse_bucket_kv_url(url)
-    assert p.bucket == "bucket"
-    assert p.key == "key1/key2"
-    assert p.protocol == "s3"
-    # only the last example has a region specified
-    assert p.region is None or p.region == "region"
+def test_extended_s3_parsing(url_part):
+    for h_proto in ["http", "https"]:
+        url = f"{h_proto}{url_part}"
+        p = parse_bucket_kv_url(url)
+        assert p.bucket == "bucket"
+        assert p.key == "key1/key2"
+        assert p.protocol == "s3"
+        # only the last example has a region specified
+        assert p.region is None or p.region == "region"
 
 
-@mark.parametrize("url", ["https://storage.cloud.google.com/bucket/this/is/a/key"])
-def test_extended_gs_parsing(url):
-    p = parse_bucket_kv_url(url)
-    assert p.protocol == "gs"
-    assert p.bucket == "bucket"
-    assert p.key == "this/is/a/key"
-    assert p.region is None
+@mark.parametrize("url_part", ["://storage.cloud.google.com/bucket/this/is/a/key"])
+def test_extended_gs_parsing(url_part):
+    for h_proto in ["http", "https"]:
+        url = f"{h_proto}{url_part}"
+        p = parse_bucket_kv_url(url)
+        assert p.protocol == "gs"
+        assert p.bucket == "bucket"
+        assert p.key == "this/is/a/key"
+        assert p.region is None
