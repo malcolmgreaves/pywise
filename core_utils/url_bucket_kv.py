@@ -73,7 +73,6 @@ def parse_custom_url_format(
 
     match = re.search(f"{support_custom_protocol}://(\\w+)/([\\-\\w\\/]+)", url)
     if match is not None:
-        # bucket, key = match.group(1), match.group(2)
         return _clean_create(
             protocol=support_custom_protocol,
             bucket=match.group(1),
@@ -87,19 +86,16 @@ def parse_s3_url_formats(url: str) -> Optional[ParsedKvUrl]:
     # s3://bucket/key1/key2
     match = re.search("^s3://([^/]+)/(.*?)$", url)
     if match is not None:
-        # bucket, key = match.group(1), match.group(2)
         return _clean_create(protocol="s3", bucket=match.group(1), key=match.group(2))
 
     # http://bucket.s3.amazonaws.com/key1/key2
     match = re.search("^https?://(.+).s3.amazonaws.com(.*?)$", url)
     if match is not None:
-        # bucket, key = match.group(1), match.group(2)
         return _clean_create(protocol="s3", bucket=match.group(1), key=match.group(2))
 
     # http://bucket.s3-region.amazonaws.com/key1/key2
     match = re.search("^https?://(.+).s3[.-](dualstack\\.)?([^.]+).amazonaws.com(.*?)$", url)
     if match is not None:
-        # bucket, region, key = match.group(1), match.group(3), match.group(4)
         return _clean_create(
             protocol="s3", bucket=match.group(1), key=match.group(4), region=match.group(3)
         )
@@ -107,13 +103,11 @@ def parse_s3_url_formats(url: str) -> Optional[ParsedKvUrl]:
     # http://s3.amazonaws.com/bucket/key1/key2
     match = re.search("^https?://s3.amazonaws.com/([^/]+)(.*?)$", url)
     if match is not None:
-        # bucket, key = match.group(1), match.group(2)
         return _clean_create(protocol="s3", bucket=match.group(1), key=match.group(2))
 
     # http://s3-region.amazonaws.com/bucket/key1/key2
     match = re.search("^https?://s3[.-](dualstack\\.)?([^.]+).amazonaws.com/([^/]+)(.*?)$", url)
     if match is not None:
-        # bucket, region, key = match.group(3), match.group(2), match.group(4)
         return _clean_create(
             protocol="s3", bucket=match.group(3), key=match.group(4), region=match.group(2)
         )
@@ -122,7 +116,6 @@ def parse_s3_url_formats(url: str) -> Optional[ParsedKvUrl]:
     # http://s3.amazonaws.com/bucket/key1/key2
     match = re.search("^https?://s3.amazonaws.com/([^/]+)(.*?)$", url)
     if match is not None:
-        # bucket, key = match.group(1), match.group(2)
         return _clean_create(protocol="s3", bucket=match.group(1), key=match.group(2))
 
     return None
@@ -132,13 +125,11 @@ def parse_gcs_url_formats(url: str) -> Optional[ParsedKvUrl]:
     # gs://bucket/key1/key2
     match = re.search("^gs://([^/]+)/(.*?)$", url)
     if match is not None:
-        # bucket, key = match.group(1), match.group(2)
         return _clean_create(protocol="gs", bucket=match.group(1), key=match.group(2))
 
     # https://storage.cloud.google.com/bucket/this/is/a/key
     match = re.search("^https?://storage.cloud.google.com/([^/]+)(.*?)$", url)
     if match is not None:
-        # bucket, key = match.group(1), match.group(2)
         return _clean_create(protocol="gs", bucket=match.group(1), key=match.group(2))
 
     return None
@@ -150,6 +141,7 @@ def _clean_create(
     x = ParsedKvUrl(
         protocol=protocol.strip(),
         bucket=bucket.strip(),
+        # some of the regexes incorrectly include a leading /
         key=key.strip().removeprefix("/"),
         region=region.strip() if region is not None else None,
     )
