@@ -15,7 +15,7 @@ from typing import (
 
 from pytest import raises
 
-from core_utils.common import checkable_type, import_by_name, type_name
+from core_utils.common import checkable_type, dynamic_load, import_by_name, type_name
 
 
 class NTX(NamedTuple):
@@ -99,3 +99,11 @@ def test_checkable_type():
     assert Mapping == checkable_type(Mapping[str, Sequence[int]])
     assert Dict == checkable_type(Dict[str, Sequence[int]])
     assert List == checkable_type(List[List[List[str]]])
+
+
+def test_dynamic_load():
+    c = dynamic_load("test_common", "Constrained", validate=True)
+    assert c == Constrained
+
+    t = dynamic_load("typing", None)
+    assert t == typing

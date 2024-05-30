@@ -1,5 +1,22 @@
 from importlib import import_module
-from typing import Any, Optional, Tuple, Type, TypeVar, _GenericAlias, get_args  # type: ignore
+from typing import (  # type: ignore
+    Any,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    _GenericAlias,  # type: ignore
+    get_args,
+)
+
+__all__: Sequence[str] = (
+    "type_name",
+    "import_by_name",
+    "split_module_value",
+    "dynamic_load",
+    "checkable_type",
+)
 
 
 def type_name(t: type, keep_main: bool = True) -> str:
@@ -74,6 +91,7 @@ def import_by_name(full_name: str, validate: bool = True) -> Any:
 
     try:
         try:
+            # validate=False because we have already checked
             module_name, value_name = split_module_value(full_name, validate=False)
             return dynamic_load(module_name, value_name, validate=False)
         except ValueError:

@@ -118,7 +118,7 @@ def deserialize(
     NOTE: If the input type `type_value` is a sequence, then deserialization is attempted on each
     element. If it is a `dict`, then deserialization is attempted on each key and value. If this
     specified type is a namedtuple, dataclass, or enum, then it will be appropriately handled.
-    Values without these explicit types are returned as-is.
+    EnvValues without these explicit types are returned as-is.
 
     The :param:`custom` optional mapping provides callers with the ability to handle deserialization
     of complex types that are from an external source. E.g. To deserialize `numpy` arrays, one may use:
