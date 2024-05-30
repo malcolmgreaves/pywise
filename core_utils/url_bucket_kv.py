@@ -138,11 +138,14 @@ def parse_gcs_url_formats(url: str) -> Optional[ParsedKvUrl]:
 def _clean_create(
     protocol: str, bucket: str, key: str, region: Optional[str] = None
 ) -> ParsedKvUrl:
+    key = key.strip()
+    # some of the parsing regexes incorrectly include a leading '/'
+    if key.startswith("/"):
+        key = key[1:]
     x = ParsedKvUrl(
         protocol=protocol.strip(),
         bucket=bucket.strip(),
-        # some of the regexes incorrectly include a leading /
-        key=key.strip().removeprefix("/"),
+        key=key,
         region=region.strip() if region is not None else None,
     )
     if len(x.protocol) == 0:
