@@ -50,17 +50,15 @@ NOTE: To run `tox`, you must have all necessary Python interpreters available.
 
 
 #### Dev Tools
-This project uses `black` for code formatting, `flake8` for linting, and
-`mypy` for type checking. Use the following commands to ensure code quality:
+This project uses `ruff` for code formatting and  linting. Static type checking is enforced using `mypy`.
+Use the following commands to ensure code quality:
 ```
-# formats all code in-place
-black .
+# code format and lint: applies fixes automatically in-place if possible
+ruff format .
+ruff check --fix .
 
 # typechecks
-mypy --ignore-missing-imports --follow-imports=silent --show-column-numbers --warn-unreachable .
-
-# lints code
-flake8 --max-line-length=100 --ignore=E501,W293,E303,W291,W503,E203,E731,E231,E721,E722,E741 .
+mypy --ignore-missing-imports --follow-imports=silent --show-column-numbers --warn-unreachable --install-types --non-interactive --check-untyped-defs .
 ```
 
 
