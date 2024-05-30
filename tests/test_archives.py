@@ -23,7 +23,9 @@ def test_extract_archive_fail_conditions():
         # source archive has unknown filename and extension is not explicit
         with TemporaryDirectory() as tempdir:
             _, archive_file = _create_archive(tempdir, "dir_for_fail", "gz")
-            without_extension = str(archive_file).removesuffix(".gz")
+            without_extension = str(archive_file)
+            if without_extension.endswith(".gz"):
+                without_extension = without_extension[0 : -len(".gz")]
             shutil.move(str(archive_file), without_extension)
 
             extract_archive(Path(without_extension), Path("unreachable"), compression_ext=None)
