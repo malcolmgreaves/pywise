@@ -1,11 +1,10 @@
-from typing import NamedTuple, Any, Optional, Sequence, Tuple
+from typing import Any, NamedTuple, Optional
 
 from pytest import raises
 
-from core_utils.collections import flatten, _is_flattenable
+from core_utils.collections import flatten, is_flattenable
 
-
-NT = NamedTuple("NT", [('name', str)])
+NT = NamedTuple("NT", [("name", str)])
 
 
 def test_flatten_deep_edge_cases():
@@ -22,10 +21,9 @@ def test_flatten_one_level():
         for i in range(limit):
             yield i
 
-    def _help_t_flatten_one_level(input_,
-                                  output: Optional = None,
-                                  to_structure: Any = list,
-                                  is_gen: bool = False):
+    def _help_t_flatten_one_level(
+        input_, output: Optional = None, to_structure: Any = list, is_gen: bool = False
+    ):
         if is_gen:
             input_ = list(input_)
         if output is None:
@@ -37,14 +35,14 @@ def test_flatten_one_level():
     _help_t_flatten_one_level([10, 20, 30])
     _help_t_flatten_one_level({10, 20, 30, 40, 50}, to_structure=set)
     _help_t_flatten_one_level(range(10), output=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    _help_t_flatten_one_level(['hh', 'ee', 'll', 'll', 'oo'])
+    _help_t_flatten_one_level(["hh", "ee", "ll", "ll", "oo"])
     _help_t_flatten_one_level((1, 2, 3), to_structure=tuple)
     _help_t_flatten_one_level(range(3), output=(0, 1, 2), to_structure=tuple)
     _help_t_flatten_one_level(simple_generator(), output=[0, 1, 2, 3, 4], is_gen=True)
-    _help_t_flatten_one_level(map(lambda x: x * 10, range(4)), output=[0, 10, 20, 30],
-                              is_gen=True)
-    _help_t_flatten_one_level(filter(lambda x: x % 2 == 0, range(10)), output=[0, 2, 4, 6, 8],
-                              is_gen=True)
+    _help_t_flatten_one_level(map(lambda x: x * 10, range(4)), output=[0, 10, 20, 30], is_gen=True)
+    _help_t_flatten_one_level(
+        filter(lambda x: x % 2 == 0, range(10)), output=[0, 2, 4, 6, 8], is_gen=True
+    )
 
 
 def test_flatten_deep_nested():
@@ -54,76 +52,15 @@ def test_flatten_deep_nested():
         [range(10), range(10, 15), range(15, 30)],
         [range(30, 40)],
         [
+            [range(40, 50), [[[[range(50, 60)]]]]],
             [
-                range(40, 50),
                 [
-                    [
-                        [
-                            [
-                                range(50, 60)
-                            ]
-                        ]
-                    ]
+                    [[[[[[[[[[[[[[[[range(60, 70)]]]]]]]]]]]]]]]],
+                    [[range(70, 80)], [[[[range(80, 90)]]]]],
+                    [[range(90, 100), range(100, 100)]],
                 ]
             ],
-            [
-                [
-                    [
-                        [
-                            [
-                                [
-                                    [
-                                        [
-                                            [
-                                                [
-                                                    [
-                                                        [
-                                                            [
-                                                                [
-                                                                    [
-                                                                        [
-                                                                            [
-                                                                                [
-                                                                                    range(60, 70)
-                                                                                ]
-                                                                            ]
-                                                                        ]
-                                                                    ]
-                                                                ]
-                                                            ]
-                                                        ]
-                                                    ]
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    [
-                        [
-                            range(70, 80)
-                        ],
-                        [
-                            [
-                                [
-                                    [
-                                        range(80, 90)
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    [
-                        [
-                            range(90, 100),
-                            range(100, 100)
-                        ]
-                    ]
-                ]
-            ]
-        ]
+        ],
     ]
     assert list(flatten(multi_level_nested)) == list(range(100))
 
@@ -139,13 +76,9 @@ def test_flatten_ok_namedtuple_and_tuples():
 
 
 def test_flatten_notuple():
-    input_ = [
-        [('h', 1), ('e', 2), ('l', 3)],
-        [('l', 4)],
-        ('o', 5)
-    ]
+    input_ = [[("h", 1), ("e", 2), ("l", 3)], [("l", 4)], ("o", 5)]
 
-    expected = [('h', 1), ('e', 2), ('l', 3), ('l', 4), ('o', 5)]
+    expected = [("h", 1), ("e", 2), ("l", 3), ("l", 4), ("o", 5)]
 
     actual_shallow = list(flatten(input_, preserve_tuple=True))
     assert actual_shallow == expected
@@ -160,13 +93,17 @@ def test_is_flattenable():
         yield 2
         yield 3
 
-    assert _is_flattenable([1, 2, 3])
-    assert _is_flattenable(a_generator())
-    assert _is_flattenable((1, 2, 3))
-    assert _is_flattenable({1, 2, 3})
-    assert _is_flattenable(range(1, 4))
+    assert is_flattenable([1, 2, 3])
+    assert is_flattenable(a_generator())
+    assert is_flattenable((1, 2, 3))
+    assert is_flattenable({1, 2, 3})
+    assert is_flattenable(range(1, 4))
 
-    assert not _is_flattenable(None)
-    assert not _is_flattenable(NT(name="hello world"))
-    assert not _is_flattenable("strings are not flattenable")
+    assert not is_flattenable(None)
+    assert not is_flattenable(NT(name="hello world"))
+    assert not is_flattenable("strings are not flattenable")
 
+
+def test_flatten_fails():
+    with raises(ValueError):
+        flatten({"hello": "world"})
