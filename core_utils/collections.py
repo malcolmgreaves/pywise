@@ -15,7 +15,7 @@ Nested = Iterable[Union[T, "Nested"]]
 """
 
 
-def flatten(elements: Nested, preserve_tuple: bool = False) -> Iterator[T]:
+def flatten(elements: Nested, preserve_tuple: bool = False) -> Nested:
     """Flattens an arbitrarily-deeply-nested iterable of iterables.
 
     Uses :func:`is_flattenable` to control what explict types are able to be flattened.

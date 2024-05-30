@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple, Optional
+from typing import Any, List, NamedTuple, Optional, Tuple, Union
 
 from pytest import raises
 
@@ -22,14 +22,17 @@ def test_flatten_one_level():
             yield i
 
     def _help_t_flatten_one_level(
-        input_, output: Optional = None, to_structure: Any = list, is_gen: bool = False
-    ):
+        input_: Optional[Any] = None,
+        output: Optional[Any] = None,
+        to_structure: type = list,
+        is_gen: bool = False,
+    ) -> None:
         if is_gen:
-            input_ = list(input_)
+            input_ = list(input_)  # type: ignore
         if output is None:
             output = input_
-        assert to_structure(flatten(input_)) == output
-        assert to_structure(flatten(input_, preserve_tuple=True)) == output
+        assert to_structure(flatten(input_)) == output  # type: ignore
+        assert to_structure(flatten(input_, preserve_tuple=True)) == output  # type: ignore
 
     _help_t_flatten_one_level([1])
     _help_t_flatten_one_level([10, 20, 30])
@@ -76,11 +79,20 @@ def test_flatten_ok_namedtuple_and_tuples():
 
 
 def test_flatten_notuple():
-    input_ = [[("h", 1), ("e", 2), ("l", 3)], [("l", 4)], ("o", 5)]
+    input_: List[Union[List[Tuple[str, int]], Tuple[str, int]]] = [
+        [("h", 1), ("e", 2), ("l", 3)],
+        [("l", 4)],
+        ("o", 5),
+    ]
 
-    expected = [("h", 1), ("e", 2), ("l", 3), ("l", 4), ("o", 5)]
+    expected: List[Tuple[str, int]] = [("h", 1), ("e", 2), ("l", 3), ("l", 4), ("o", 5)]
 
-    actual_shallow = list(flatten(input_, preserve_tuple=True))
+    actual_shallow: List[Tuple[str, int]] = list(
+        flatten(
+            input_,  # type: ignore
+            preserve_tuple=True,
+        )
+    )
     assert actual_shallow == expected
 
     actual_deep = list(flatten(input_))
@@ -105,5 +117,7 @@ def test_is_flattenable():
 
 
 def test_flatten_fails():
+    d = {"hello": "world"}
+    assert not is_flattenable(d)
     with raises(ValueError):
-        flatten({"hello": "world"})
+        list(flatten(d))  # type: ignore
