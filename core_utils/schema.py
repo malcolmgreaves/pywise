@@ -49,10 +49,10 @@ def dict_type_representation(nt_or_dc_type: Type) -> Discover:
 def _dict_type(t: type):
     if is_typed_namedtuple(t) or is_dataclass(t):
         if is_typed_namedtuple(t):
-            field_types_of: Callable[
-                [], Iterable[Tuple[str, type]]
-            ] = lambda: _namedtuple_field_types(
-                t  # type: ignore
+            field_types_of: Callable[[], Iterable[Tuple[str, type]]] = (
+                lambda: _namedtuple_field_types(
+                    t  # type: ignore
+                )
             )
         else:
 

@@ -3,11 +3,13 @@
 #   - version specifiers are **EXACTLY** the same
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.2
+    rev: v0.4.6
     hooks:
+      # Run the linter.
       - id: ruff
-        args:
-          - --fix
+        args: [ --fix ]
+      # Run the formatter.
+      - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.10.0
     hooks:
@@ -44,5 +46,4 @@ repos:
         language: python
         args:
           - '--allow-multiple-documents'
-
 
