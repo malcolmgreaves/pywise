@@ -39,8 +39,8 @@ def dict_type_representation(nt_or_dc_type: Type) -> Discover:
     """
     try:
         return _dict_type(nt_or_dc_type)
-    except Exception as e:
-        raise TypeError(
+    except Exception as e:  # pragma: no cover
+        raise TypeError(  # pragma: no cover
             f"Failed to discover field-type attributes of type: '{nt_or_dc_type}",
             e,
         )
@@ -72,8 +72,8 @@ def _dict_type(t: type):
                     _args = get_args(t)
                     key_t: type = cast(type, _args[0])
                     val_t: type = cast(type, _args[1])
-                except Exception as e:
-                    raise TypeError(
+                except Exception as e:  # pragma: no cover
+                    raise TypeError(  # pragma: no cover
                         f"Could not extract key & value types from dict type: '{t}'"
                     ) from e
                 else:
@@ -84,8 +84,8 @@ def _dict_type(t: type):
             elif issubclass(checkable_t, Iterable) and t != str:
                 try:
                     inner_t: type = cast(type, get_args(t)[0])
-                except Exception as e:
-                    raise TypeError(
+                except Exception as e:  # pragma: no cover
+                    raise TypeError(  # pragma: no cover
                         f"Could not extract inner type from iterable type: '{t}'"
                     ) from e
                 else:
