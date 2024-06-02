@@ -4,7 +4,7 @@ from datetime import timedelta
 from pytest import raises
 
 from core_utils.loggers import print_logger
-from core_utils.timer import timer
+from core_utils.timing import timer
 
 
 def test_timer():
