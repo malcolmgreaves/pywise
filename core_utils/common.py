@@ -40,8 +40,8 @@ def type_name(t: type, keep_main: bool = True) -> str:
             if len(args) == 2 and args[1] == type(None):  # noqa: E721
                 # an Optional type is equivalent to Union[T, None]
                 return f"typing.Optional[{type_name(args[0])}]"
-        except Exception:
-            pass
+        except Exception:  # pragma: no cover  # noqa
+            pass  # pragma: no cover
         return str(t)
 
     if issubclass(type(t), _GenericAlias):
